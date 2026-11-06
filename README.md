@@ -20,7 +20,7 @@ Keyboard: `R` runs the course, `T` starts the test, `Delete` removes the selecte
 
 | | |
 |---|---|
-| **Windows 10/11** | Run `StoryPalace.exe`. It is one file and needs no installer. |
+| **Windows 10/11** | Run `StoryPalace-Setup.exe` and follow the setup wizard. It adds StoryPalace to the Start menu (and optionally the desktop) and can be removed from *Settings → Apps*. No admin rights needed. |
 | **macOS 10.13+** (Apple Silicon and Intel) | Unzip `StoryPalace.zip` and drag **StoryPalace.app** into Applications. The first time, right-click the app and choose **Open**, then **Open** again. The app is not notarised by Apple yet. |
 
 Your palaces are saved automatically to:
@@ -42,6 +42,8 @@ godot --headless --path . --export-release "Windows Desktop" build/windows/Story
 ```bash
 godot --headless --path . --export-release "macOS" build/macos/StoryPalace.zip
 ```
+
+To build the Windows installer, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run `ISCC installer/storypalace.iss` after exporting the exe; it writes `build/installer/StoryPalace-Setup-<version>.exe`.
 
 A Mac build made on Windows or Linux gets an ad-hoc signature only. To notarise it for the Mac App Store or for opening without the right-click step, export on a Mac with an Apple Developer ID.
 
