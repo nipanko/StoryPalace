@@ -41,7 +41,7 @@ The method of loci made hands-on: the place, the images, the path and the recall
 
 - Maker credit, exactly: "Built with 💖 by Storybook Interactive Private Limited".
 - Credit only the maker; no other names or attributions in the app, repo, commits or docs.
-- Product name: Memory Palace (working name).
+- Product name: StoryPalace.
 
 ## Evidence on Hand
 

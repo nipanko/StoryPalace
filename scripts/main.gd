@@ -27,7 +27,7 @@ func _fit_window() -> void:
 			scale = a.trim_prefix("--scale=").to_float()
 	w.content_scale_factor = scale
 	w.min_size = Vector2i(Vector2(1024, 680) * scale)
-	w.title = "Memory Palace"
+	w.title = "StoryPalace"
 	if "--windowed" not in OS.get_cmdline_user_args():
 		w.mode = Window.MODE_MAXIMIZED
 

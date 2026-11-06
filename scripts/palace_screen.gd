@@ -434,7 +434,7 @@ func _pick_picture(it: Dictionary) -> void:
 func _on_palace_menu(id: int) -> void:
 	match id:
 		0:
-			UI.file_dialog(self, true, PackedStringArray(["*.palace ; Memory Palace file"]), func(path):
+			UI.file_dialog(self, true, PackedStringArray(["*.palace ; StoryPalace file"]), func(path):
 				if not path.ends_with(".palace"):
 					path += ".palace"
 				Store.flush()

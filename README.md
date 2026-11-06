@@ -1,4 +1,4 @@
-# Memory Palace
+# StoryPalace
 
 Remember anything by building memory palaces. Pick a place you know well, put a vivid picture at each spot along a path, write the little story that ties it there, then walk the path and test yourself.
 
@@ -20,13 +20,13 @@ Keyboard: `R` runs the course, `T` starts the test, `Delete` removes the selecte
 
 | | |
 |---|---|
-| **Windows 10/11** | Run `MemoryPalace.exe`. It is one file and needs no installer. |
-| **macOS 10.13+** (Apple Silicon and Intel) | Unzip `MemoryPalace.zip` and drag **Memory Palace.app** into Applications. The first time, right-click the app and choose **Open**, then **Open** again. The app is not notarised by Apple yet. |
+| **Windows 10/11** | Run `StoryPalace.exe`. It is one file and needs no installer. |
+| **macOS 10.13+** (Apple Silicon and Intel) | Unzip `StoryPalace.zip` and drag **StoryPalace.app** into Applications. The first time, right-click the app and choose **Open**, then **Open** again. The app is not notarised by Apple yet. |
 
 Your palaces are saved automatically to:
 
-- Windows: `%APPDATA%\Memory Palace`
-- macOS: `~/Library/Application Support/Memory Palace`
+- Windows: `%APPDATA%\StoryPalace`
+- macOS: `~/Library/Application Support/StoryPalace`
 
 ## Build from source
 
@@ -36,11 +36,11 @@ The app is made with [Godot](https://godotengine.org) 4.7.2 (standard version, n
 2. Open this folder in Godot, or export from the command line:
 
 ```bash
-godot --headless --path . --export-release "Windows Desktop" build/windows/MemoryPalace.exe
+godot --headless --path . --export-release "Windows Desktop" build/windows/StoryPalace.exe
 ```
 
 ```bash
-godot --headless --path . --export-release "macOS" build/macos/MemoryPalace.zip
+godot --headless --path . --export-release "macOS" build/macos/StoryPalace.zip
 ```
 
 A Mac build made on Windows or Linux gets an ad-hoc signature only. To notarise it for the Mac App Store or for opening without the right-click step, export on a Mac with an Apple Developer ID.

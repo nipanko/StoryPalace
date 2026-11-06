@@ -61,10 +61,14 @@ func _ready() -> void:
 	col.get_parent().size_flags_horizontal = SIZE_EXPAND_FILL
 
 	var head := UI.hbox(14)
-	var mark := Symbol.new()
-	mark.kind = "start"
+	var mark := TextureRect.new()
+	mark.texture = load("res://icon.svg")
+	mark.custom_minimum_size = Vector2(56, 56)
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	head.add_child(mark)
-	var name := UI.label("Memory Palace", "Display")
+	var name := UI.label("StoryPalace", "Display")
 	name.add_theme_font_size_override(&"font_size", 40)
 	head.add_child(name)
 	head.add_child(UI.spacer())
@@ -226,7 +230,7 @@ func _on_tile_menu(id: int, p: Dictionary) -> void:
 	elif id == 1:
 		Store.duplicate_palace(p)
 	elif id == 2:
-		UI.file_dialog(self, true, PackedStringArray(["*.palace ; Memory Palace file"]), func(path): _export(p, path), p.name.validate_filename() + ".palace")
+		UI.file_dialog(self, true, PackedStringArray(["*.palace ; StoryPalace file"]), func(path): _export(p, path), p.name.validate_filename() + ".palace")
 	elif id == 3:
 		UI.confirm(self, "Delete palace", "Delete “%s” with all its rooms and memories? This cannot be undone." % p.name, "Delete palace", func(): Store.delete_palace(p))
 
@@ -249,9 +253,9 @@ func _new_palace() -> void:
 
 
 func _import() -> void:
-	UI.file_dialog(self, false, PackedStringArray(["*.palace ; Memory Palace file"]), func(path):
+	UI.file_dialog(self, false, PackedStringArray(["*.palace ; StoryPalace file"]), func(path):
 		var p := Store.import_palace(path)
 		if p.is_empty():
-			UI.toast(self, "That file is not a Memory Palace export.")
+			UI.toast(self, "That file is not a StoryPalace export.")
 		else:
 			open_requested.emit(p))

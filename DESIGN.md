@@ -1,6 +1,6 @@
 # Design
 
-Memory Palace borrows the look of an orienteering map and its course overprint. Each room is the terrain. The story path is a purple course on top of it: a start triangle, numbered control circles, legs that stop at each circle's edge, and a double-circle finish. Everything else stays out of the way.
+StoryPalace borrows the look of an orienteering map and its course overprint. Each room is the terrain. The story path is a purple course on top of it: a start triangle, numbered control circles, legs that stop at each circle's edge, and a double-circle finish. Everything else stays out of the way.
 
 ## Colour (map inks)
 
