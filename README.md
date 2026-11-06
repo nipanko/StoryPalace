@@ -86,4 +86,4 @@ licenses/           third-party licences
 - Interface icons: Lucide, ISC licence (`licenses/lucide-ISC.txt`)
 - Emoji names: Unicode emoji data. Emoji pictures are drawn by your system's emoji font.
 
-© 2026 Storybook Interactive Private Limited.
+© 2026 Storybook Interactive Private Limited. Released under the MIT licence (see `LICENSE`).
