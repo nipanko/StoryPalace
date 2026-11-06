@@ -8,7 +8,7 @@ func _ready() -> void:
 	_fit_window()
 	get_tree().root.theme = UI.build_theme()
 	var bg := ColorRect.new()
-	bg.color = UI.PAPER
+	bg.color = UI.GROUND
 	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(bg)
 	show_home()
@@ -37,8 +37,7 @@ func _swap(s: Control) -> void:
 		_screen.queue_free()
 	_screen = s
 	add_child(s)
-	s.modulate.a = 0.0
-	s.create_tween().tween_property(s, "modulate:a", 1.0, 0.16)
+	UI.pop_in(s, 0.0, 0.985)
 
 
 func show_home() -> void:

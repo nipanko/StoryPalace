@@ -36,6 +36,15 @@ var _press_id := ""
 var _press_at := Vector2.ZERO
 var _press_empty := false
 var _dragging := false
+var _pops := {}            # item id -> landing scale while a new sticker presses down
+
+
+## A new sticker lands with a small bounce.
+func pop(id: String) -> void:
+	_pops[id] = 0.0
+	var tw := create_tween()
+	tw.tween_method(func(v: float): _pops[id] = v; queue_redraw(), 0.0, 1.0, 0.38).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func(): _pops.erase(id))
 
 
 func _ready() -> void:
@@ -75,31 +84,40 @@ func _draw() -> void:
 	if room.is_empty():
 		return
 	var rect := scene_rect()
+	# the space around the room reads as the desk, not as empty paper
+	draw_rect(Rect2(Vector2.ZERO, size), UI.LAVENDER_TINT)
+	var g := Color(UI.INK, 0.06)
+	for x in range(24, int(size.x), 24):
+		draw_line(Vector2(x, 0), Vector2(x, size.y), g, 1.0)
+	for y in range(24, int(size.y), 24):
+		draw_line(Vector2(0, y), Vector2(size.x, y), g, 1.0)
 	SceneArt.draw_room(self, rect, room)
 	var opts := tour.duplicate()
 	opts.selected = selected_id
 	opts.hover = _hover_id
+	opts.pops = _pops
 	Course.draw_room_course(self, rect, room, first_number(), Store.count_items(palace), radius(), opts)
 	if editable and _ghost.x >= 0 and not _dragging:
 		var c := rect.position + _ghost * rect.size
 		var r := radius()
-		draw_arc(c, r, 0, TAU, 40, Color(UI.PURPLE, 0.7), Course.ring_width(r), true)
-		draw_line(c - Vector2(r * 0.35, 0), c + Vector2(r * 0.35, 0), UI.PURPLE, 3, true)
-		draw_line(c - Vector2(0, r * 0.35), c + Vector2(0, r * 0.35), UI.PURPLE, 3, true)
-		_pill(c + Vector2(r + 10, -14), "Add control %d here" % (first_number() + room.items.size()))
+		draw_circle(c, r, Color(UI.PAPER, 0.75), true, -1, true)
+		draw_arc(c, r, 0, TAU, 40, Color(UI.PINK, 0.8), Course.ring_width(r), true)
+		draw_line(c - Vector2(r * 0.35, 0), c + Vector2(r * 0.35, 0), UI.PINK, 3, true)
+		draw_line(c - Vector2(0, r * 0.35), c + Vector2(0, r * 0.35), UI.PINK, 3, true)
+		_pill(c + Vector2(r + 10, -14), "Add memory %d here" % (first_number() + room.items.size()))
 	elif editable and room.items.is_empty():
 		_pill(rect.get_center() - Vector2(160, 18), "Click anywhere to place your first memory", true)
 
 
 func _pill(at: Vector2, text: String, big := false) -> void:
-	var f := UI.font("Barlow-SemiBold")
+	var f := UI.font("semibold")
 	var fs := 17 if big else 15
 	var s := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 	var box := Rect2(at, s + Vector2(20, 12))
 	if big:
 		box.position.x = scene_rect().get_center().x - box.size.x * 0.5
 	box.position.x = minf(box.position.x, size.x - box.size.x - 6)
-	draw_style_box(UI.box(UI.INK, Color.TRANSPARENT, 0, 4), box)
+	draw_style_box(UI.box(UI.INK, Color.TRANSPARENT, 0, int(box.size.y * 0.5)), box)
 	draw_string(f, box.position + Vector2(10, 6 + f.get_ascent(fs)), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UI.PAPER)
 
 
@@ -155,6 +173,7 @@ func _gui_input(e: InputEvent) -> void:
 				var it := Store.new_item(n.x, n.y)
 				room.items.append(it)
 				selected_id = it.id
+				pop(it.id)
 				added.emit(it)
 			_press_id = ""
 			_dragging = false

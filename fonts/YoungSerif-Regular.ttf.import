@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://bn2o75ja6aay5"
-path="res://.godot/imported/Barlow-SemiBold.ttf-43d139a3c169ccc4e7ab66a8b6c3c884.fontdata"
+uid="uid://2o82flg473a"
+path="res://.godot/imported/YoungSerif-Regular.ttf-8e82a34c29340c58fcef4a7e75298afc.fontdata"
 
 [deps]
 
-source_file="res://fonts/Barlow-SemiBold.ttf"
-dest_files=["res://.godot/imported/Barlow-SemiBold.ttf-43d139a3c169ccc4e7ab66a8b6c3c884.fontdata"]
+source_file="res://fonts/YoungSerif-Regular.ttf"
+dest_files=["res://.godot/imported/YoungSerif-Regular.ttf-8e82a34c29340c58fcef4a7e75298afc.fontdata"]
 
 [params]
 

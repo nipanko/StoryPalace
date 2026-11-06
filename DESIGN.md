@@ -1,52 +1,57 @@
 # Design
 
-StoryPalace borrows the look of an orienteering map and its course overprint. Each room is the terrain. The story path is a purple course on top of it: a start triangle, numbered control circles, legs that stop at each circle's edge, and a double-circle finish. Everything else stays out of the way.
+StoryPalace looks like a cosy sticker desktop. Every panel is a pastel window with an outlined title bar, and every memory is a sticker pressed onto a room along a pink path. It draws on four references: the calm three-column layout of a science studio app, retro OS window frames, a Y2K grid desktop, and a confident game title screen.
 
-## Colour (map inks)
+## Colour
 
 | Token | Hex | Job |
 |---|---|---|
-| ink | `#1E1E1E` | text, 2 px frames and rules, selected room header |
-| muted | `#5B5B5B` | secondary text (6.6:1 on white) |
-| paper | `#FFFFFF` | the ground ("runnable forest"), panels |
-| course purple | `#B4248C` | the path, control numbers, primary buttons, focus rings, caret. Used for nothing decorative |
-| purple dark | `#951C74` | primary hover and pressed |
-| purple tint | `#FBE6F3` | the selected control row |
-| open-land yellow | `#F7C04A` | selected control fill on the map, pressed flat buttons |
-| yellow tint | `#FDF1D2` | hover |
-| thicket green | `#7DB55E`, text `#3F7A2A` | "punched" (remembered) |
-| contour brown | `#B96A2C` | contour hairlines on the home screen, at 16–26% alpha |
-| missed red | `#C8362D` | "missed", destructive actions |
+| ink | `#35294A` | text and every 2 px outline (11:1 on cream) |
+| muted | `#6B5F7D` | secondary text |
+| ground | `#FFF5E6` | the desk, with a faint 32 px grid |
+| paper | `#FFFDF8` | window bodies, inputs |
+| pink | `#D02E6E` | the path, number tags, primary action, focus ring, caret (4.9:1 with white) |
+| pink dark | `#B0225B` | primary hover and pressed |
+| butter | `#FFD166` | secondary action (Punch test), selected sticker halo, Memories title bar |
+| lavender | `#CFC9F2`, tint `#EEEBFB` | room window title bar, selection, hover |
+| teal | `#9ED8CF` | Rooms title bar, current room header, "tested" chip |
+| peach | `#FFC2A8` | the open memory card, run and test card window |
+| sky | `#5C8DF6` | reserved for 3D accents |
+| green | `#23805F` | remembered |
+| red | `#C93A2C` | missed, destructive |
 
-State never relies on colour alone. A punched control gets a check badge, a missed one is struck through with an X, and punch-card boxes show ✓ or ✗.
+State never relies on colour alone. A remembered sticker gets a check badge, a missed one is crossed out, and the punch card shows ✓ or ✗.
 
 ## Type
 
-- **Barlow Condensed Bold** for display text, palace names, and control numerals (30–40 px). Numerals are purple, with a white halo on the map.
-- **Barlow Condensed SemiBold** for buttons (18 px) and tracked caps labels (14 px, +1 px spacing).
-- **Barlow** Regular and SemiBold for body text (15–17 px) and row titles (18 px).
+- **Young Serif** for display text: the app name (46 px), palace names (34 px), and section and card headings (26 px).
+- **Nunito** for everything else: body 16–17 px at weight 500, row titles 17 px at 800, buttons 16 px at 800, and window title bars and number tags at 900.
 - Emoji fall back to the system colour emoji font inside any text.
 
-## Shape and space
+## Shape
 
-- 4 px corners everywhere. Buttons and inputs have a 2 px ink frame; map frames and dialogs use the same frame. Popups get one soft shadow (18 px blur, 6 px down).
-- Room tabs are map-sheet tabs: the active tab joins the map frame, and inactive tabs sit on `#F3F2EE`.
-- Spacing steps: 4, 8, 10, 12, 16, 20, 24, 28.
+- Windows have a 14 px radius, a 2 px ink outline, and a soft shadow (14 px blur, 5 px down, ink at 13%). The title bar is 40 px tall in a role colour, with a 2 px rule below it. Title-bar buttons are real actions: 28 px outlined squares with a butter hover.
+- Buttons have a 12 px radius and a 2 px ink outline: pink for primary, butter for secondary, paper for neutral.
+- Stickers are a paper disc with a pink ring and an ink outline, plus a pink pill number tag. Selected stickers get a butter halo; new ones land with a bounce.
+- Spacing steps: 4, 6, 8, 10, 12, 14, 18, 20, 24, 28.
 
-## Components
+## Layout
 
-- **Buttons:** primary (purple fill), outlined (paper with an ink frame), flat (no frame, yellow-tint hover), segmented (ink fill when on).
-- **Control description row:** purple numeral, picture, title, and a one-line story. When selected it expands in place into the editor: picture button, what to remember, picture ideas, story, Earlier, Later, Remove.
-- **Toasts:** an ink panel with white text. The remove toast has an Undo button in yellow.
+- **Editor:** a Rooms window (thumbnails), the room window (map or 3D, with the 2D/3D switch floating top-right and a hint pill bottom-left), and a Memories window whose selected card expands into its editor.
+- **Under 1280 px:** the Rooms window folds to a thumbnail strip.
+- **Under 1120 px:** Run and Test become icon-only buttons.
+- **Side windows** scale with the screen: Memories between 330 and 430 px, the run card between 340 and 460 px.
 
 ## Motion
 
-Motion only shows a change of state, and stays between 150 and 600 ms.
+Motion signals state and lasts 80–380 ms.
 
-- Screens fade in over 160 ms.
-- While the course runs, the map eases in toward the current control (zoom 1.35, 450 ms cubic ease-out), and the new leg draws itself from the last control (600 ms). This is the one signature move.
-- In 3D, the camera glides along the route through doorways, then turns to face the control.
+- Screens and windows pop open: scale 0.94 to 1, back-ease overshoot, staggered 40 ms.
+- Buttons lift to 1.03–1.08 on hover and squash to 0.95 on press. Only scale changes, so the layout never jumps.
+- A new memory sticker lands with a 380 ms bounce.
+- While the course runs, the map eases toward the current sticker and the new pink leg draws itself (600 ms). This is the signature move.
+- Each run and test step settles in like a fresh sticker.
 
 ## 3D
 
-Rooms are unlit and flat-coloured with the same wall, side, and floor colours as the 2D art, so the two views read as one place. Floors carry drawn patterns (planks, tiles, checker, slabs). Each control stands on a post with an orange-and-white kite flag, has a billboarded picture inside a purple ring, and shows its number to the upper right. The course runs as a purple ribbon on the floor.
+Rooms are unlit and flat-coloured with the same palette as the 2D art, and floors have drawn patterns. Each memory stands on a post with a pink-and-white flag and shows a billboarded picture inside a pink ring. The path is a pink ribbon on the floor.

@@ -56,7 +56,7 @@ static func picture(owner: Control, hint: String, cb: Callable) -> void:
 		scroll.scroll_vertical = 0
 	var group := ButtonGroup.new()
 	for g in Emoji.data():
-		var b := UI.button(SHORT.get(g[0], g[0]), "", "SegButton")
+		var b := UI.button(SHORT.get(g[0], g[0]), "", "FlatButton")
 		b.toggle_mode = true
 		b.button_group = group
 		b.pressed.connect(func(): search.text = ""; fill.call(g[1].map(func(x): return x[0])))
