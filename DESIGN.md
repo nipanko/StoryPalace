@@ -1,57 +1,75 @@
-# Design
+# Design system
 
-StoryPalace looks like a cosy sticker desktop. Every panel is a pastel window with an outlined title bar, and every memory is a sticker pressed onto a room along a pink path. It draws on four references: the calm three-column layout of a science studio app, retro OS window frames, a Y2K grid desktop, and a confident game title screen.
+StoryPalace looks and behaves like professional desktop software: neutral surfaces, one accent colour, one typeface, a strict spacing grid, and the same components on every screen. The rooms and the memories are the only colourful things on screen. All tokens live in `scripts/ui.gd`; screens use them and nothing ad hoc.
 
 ## Colour
 
-| Token | Hex | Job |
+| Token | Hex | Used for |
 |---|---|---|
-| ink | `#35294A` | text and every 2 px outline (11:1 on cream) |
-| muted | `#6B5F7D` | secondary text |
-| ground | `#FFF5E6` | the desk, with a faint 32 px grid |
-| paper | `#FFFDF8` | window bodies, inputs |
-| pink | `#D02E6E` | the path, number tags, primary action, focus ring, caret (4.9:1 with white) |
-| pink dark | `#B0225B` | primary hover and pressed |
-| butter | `#FFD166` | secondary action (Punch test), selected sticker halo, Memories title bar |
-| lavender | `#CFC9F2`, tint `#EEEBFB` | room window title bar, selection, hover |
-| teal | `#9ED8CF` | Rooms title bar, current room header, "tested" chip |
-| peach | `#FFC2A8` | the open memory card, run and test card window |
-| sky | `#5C8DF6` | reserved for 3D accents |
-| green | `#23805F` | remembered |
-| red | `#C93A2C` | missed, destructive |
+| `TEXT` | `#1A1D23` | primary text |
+| `MUTED` | `#5F6672` | secondary text (5.9:1 on white) |
+| `SUBTLE` | `#868D99` | captions, placeholders, disabled |
+| `BG` | `#F4F5F7` | app background |
+| `SURFACE` | `#FFFFFF` | toolbars, panels, cards, inputs |
+| `SUNKEN` | `#ECEEF1` | canvas wells, segmented-control tracks |
+| `HOVER` | `#F0F2F5` | hover on rows and ghost buttons |
+| `BORDER` / `BORDER_STRONG` | `#DFE2E7` / `#C7CCD4` | panel hairlines / control outlines |
+| `ACCENT` | `#4F46E5` | the path, number tags, primary action, focus ring, selection (6.3:1 with white) |
+| `ACCENT_HOVER` / `ACCENT_TINT` | `#4338CA` / `#EEF0FE` | pressed and hover / selected rows |
+| `SUCCESS` (+ tint) | `#1F7A4D` / `#E6F4EC` | remembered |
+| `DANGER` (+ tint) | `#C8322B` / `#FCEBEA` | missed, destructive actions |
 
-State never relies on colour alone. A remembered sticker gets a check badge, a missed one is crossed out, and the punch card shows ✓ or ✗.
+State never relies on colour alone: a remembered memory gets a check badge and the words "Got it", a missed one is crossed out and labelled "Missed".
 
 ## Type
 
-- **Young Serif** for display text: the app name (46 px), palace names (34 px), and section and card headings (26 px).
-- **Nunito** for everything else: body 16–17 px at weight 500, row titles 17 px at 800, buttons 16 px at 800, and window title bars and number tags at 900.
-- Emoji fall back to the system colour emoji font inside any text.
+One family, Inter, at four weights (400, 500, 600, 700). Emoji fall back to the system colour emoji font.
 
-## Shape
+| Style | Size / weight | Used for |
+|---|---|---|
+| Display | 24 / 600 | page titles, the memory title on the run card |
+| H1 | 20 / 600 | reserved |
+| H2 | 16 / 600 | toolbar titles, dialog titles |
+| H3 | 14 / 600 | row and card titles |
+| Body | 14 / 400 | text |
+| Muted | 13 / 400 | secondary text; 12 in the status bar and field labels |
+| Caps | 11 / 600, upper case | group headers in lists |
 
-- Windows have a 14 px radius, a 2 px ink outline, and a soft shadow (14 px blur, 5 px down, ink at 13%). The title bar is 40 px tall in a role colour, with a 2 px rule below it. Title-bar buttons are real actions: 28 px outlined squares with a butter hover.
-- Buttons have a 12 px radius and a 2 px ink outline: pink for primary, butter for secondary, paper for neutral.
-- Stickers are a paper disc with a pink ring and an ink outline, plus a pink pill number tag. Selected stickers get a butter halo; new ones land with a bounce.
-- Spacing steps: 4, 6, 8, 10, 12, 14, 18, 20, 24, 28.
+## Space and shape
+
+- Spacing uses a 4-pt grid: `S1` 4, `S2` 8, `S3` 12, `S4` 16, `S6` 24, `S8` 32.
+- Borders are 1 px. Radius is 6 on controls, 8 on panels and cards, 10 on popups.
+- Shadows mean "this floats": only popups, menus, dialogs and toasts have one.
+- Fixed heights: toolbar 52, panel header 40, status bar 28, buttons about 32.
+
+## Components
+
+- **Toolbar** (`UI.bar`): white, hairline below. Navigation on the left, view switch and actions on the right, primary action last.
+- **Panel** (`UI.panel`): bordered surface with a 40 px header (title, then icon actions) and a body.
+- **Buttons:** primary (accent fill), default (white, outlined), flat (ghost), danger (red text), icon (32 px square ghost), segmented (chip on a sunken track).
+- **Badge** (`UI.badge`): neutral, accent, success or danger pill for counts and status.
+- **Number tag** (`UI.number_tag`): the accent circle every memory carries in lists, on the map and in 3D.
+- **Inputs:** white, 1 px strong border, 2 px accent border on focus.
+- **Toast** (`UI.toast`): dark, bottom centre, optional action (Undo).
+- **Status bar:** contextual hint on the left; room and memory counts and the save state on the right.
+- **Map markers** (`scripts/course.gd`): white disc, accent ring, picture inside, number tag; a solid triangle marks the start and a second ring the finish; legs are 2 px accent lines that stop at each marker's edge.
 
 ## Layout
 
-- **Editor:** a Rooms window (thumbnails), the room window (map or 3D, with the 2D/3D switch floating top-right and a hint pill bottom-left), and a Memories window whose selected card expands into its editor.
-- **Under 1280 px:** the Rooms window folds to a thumbnail strip.
-- **Under 1120 px:** Run and Test become icon-only buttons.
-- **Side windows** scale with the screen: Memories between 330 and 430 px, the run card between 340 and 460 px.
+- **Home:** toolbar (logo, search, Import, New palace), then a grid of 288 px palace cards.
+- **Editor:** toolbar, then Rooms panel (232 px), room canvas (flexible), Memories panel (27% of the width, 320–400 px), then the status bar.
+- **Run and test:** toolbar with a 3 px progress bar under it, room canvas, and a card panel (30% of the width, 340–440 px).
+- **Responsive:** under 1200 px the Rooms panel folds to thumbnails (92 px); under 1100 px Run, Test and the Palaces breadcrumb drop their labels. Minimum window is 1024 × 680.
 
 ## Motion
 
-Motion signals state and lasts 80–380 ms.
+Motion is short and never bounces: 120 ms for state changes, 180 ms for surfaces appearing, cubic ease-out.
 
-- Screens and windows pop open: scale 0.94 to 1, back-ease overshoot, staggered 40 ms.
-- Buttons lift to 1.03–1.08 on hover and squash to 0.95 on press. Only scale changes, so the layout never jumps.
-- A new memory sticker lands with a 380 ms bounce.
-- While the course runs, the map eases toward the current sticker and the new pink leg draws itself (600 ms). This is the signature move.
-- Each run and test step settles in like a fresh sticker.
+- Screens, cards and step content fade in.
+- A new marker settles from 60% to full size.
+- While the course runs, the map eases toward the current marker (400 ms) and the next leg draws itself (600 ms).
+- In 3D, the camera glides along the route and turns to face each memory.
 
 ## 3D
 
-Rooms are unlit and flat-coloured with the same palette as the 2D art, and floors have drawn patterns. Each memory stands on a post with a pink-and-white flag and shows a billboarded picture inside a pink ring. The path is a pink ribbon on the floor.
+Rooms are unlit and flat-coloured with the same palette as the 2D art; floors have drawn patterns. Each memory stands on a post with an accent-and-white flag and shows its picture inside an accent ring. The path is an accent ribbon on the floor.

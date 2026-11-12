@@ -1,6 +1,7 @@
 class_name PalaceScreen
 extends Control
-## The palace editor: a Rooms window, the room window (2D map or 3D walk), and the Memories window.
+## The palace editor: toolbar, Rooms panel, the room canvas (2D map or 3D walk),
+## Memories panel, and a status bar.
 
 signal back_requested
 signal run_requested(mode: String)   # "run" or "test"
@@ -10,13 +11,16 @@ var room: Dictionary
 var selected_id := ""
 
 var _title: LineEdit
-var _guide: Label
-var _rooms_win: Control
+var _crumb: Button
+var _rooms_panel: Control
 var _rooms: VBoxContainer
-var _room_win: Dictionary
-var _mem_win: Dictionary
+var _room_panel: Dictionary
+var _mem_panel: Dictionary
+var _mem_count: PanelContainer
 var _holder: Control
 var _hint: Label
+var _counts: Label
+var _saved: Label
 var _table: VBoxContainer
 var _scroll: ScrollContainer
 var _seg2: Button
@@ -36,154 +40,129 @@ func setup(p: Dictionary) -> void:
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	var desk := UI.Desk.new()
-	desk.sparkles = false
-	desk.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	add_child(desk)
+	add_child(UI.backdrop())
 	var root := UI.vbox(0)
 	root.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(root)
-	root.add_child(UI.margin(_top_bar(), 20, 14, 20, 10))
-	var body := UI.hbox(18)
-	var bm := UI.margin(body, 20, 4, 20, 20)
+	root.add_child(_toolbar())
+	var body := UI.hbox(UI.S3)
+	var bm := UI.margin(body, UI.S3, UI.S3, UI.S3, UI.S3)
 	bm.size_flags_vertical = SIZE_EXPAND_FILL
 	root.add_child(bm)
+	root.add_child(_status_bar())
 
 	# Rooms
-	var rw := UI.window("Rooms", UI.TEAL, 8)
-	_rooms_win = rw.root
-	var add := UI.bar_button("plus", "Add a room")
+	var rp := UI.panel("Rooms")
+	_rooms_panel = rp.root
+	var add := UI.icon_button("plus", "Add a room")
 	add.pressed.connect(_add_room)
-	rw.bar.add_child(add)
+	rp.bar.add_child(add)
 	var rs := ScrollContainer.new()
 	rs.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_rooms = UI.vbox(6)
+	_rooms = UI.vbox(2)
 	_rooms.size_flags_horizontal = SIZE_EXPAND_FILL
-	rs.add_child(_rooms)
-	rw.body.add_child(rs)
-	body.add_child(_rooms_win)
+	rs.add_child(UI.margin(_rooms, UI.S2, UI.S2, UI.S2, UI.S2))
+	_rooms.get_parent().size_flags_horizontal = SIZE_EXPAND_FILL
+	rp.body.add_child(rs)
+	body.add_child(_rooms_panel)
 
-	# The room itself
-	_room_win = UI.window("", UI.LAVENDER, 0)
-	_room_win.root.size_flags_horizontal = SIZE_EXPAND_FILL
-	var opts := UI.bar_button("ellipsis-vertical", "Room options")
+	# The room canvas
+	_room_panel = UI.panel("")
+	_room_panel.root.size_flags_horizontal = SIZE_EXPAND_FILL
+	var opts := UI.icon_button("ellipsis-vertical", "Room options")
 	opts.pressed.connect(_room_menu)
-	_room_win.bar.add_child(opts)
+	_room_panel.bar.add_child(opts)
 	_holder = Control.new()
 	_holder.clip_contents = true
-	_room_win.body.add_child(_holder)
-	_holder.resized.connect(_place_overlays)
-	body.add_child(_room_win.root)
-	_holder.add_child(_view_switch())
-	_hint = UI.label("", "Muted")
-	var hint_pill := PanelContainer.new()
-	hint_pill.name = "HintPill"
-	hint_pill.add_theme_stylebox_override(&"panel", UI.box(Color(UI.PAPER, 0.92), UI.INK, UI.LINE, 12, Vector4(12, 6, 12, 6)))
-	hint_pill.mouse_filter = MOUSE_FILTER_IGNORE
-	hint_pill.add_child(_hint)
-	_holder.add_child(hint_pill)
+	_room_panel.body.add_child(_holder)
+	body.add_child(_room_panel.root)
 
 	# Memories
-	_mem_win = UI.window("Memories", UI.BUTTER, 0)
-	body.add_child(_mem_win.root)
+	_mem_panel = UI.panel("Memories")
+	_mem_count = UI.badge("0")
+	_mem_panel.bar.add_child(_mem_count)
+	_mem_panel.bar.add_child(UI.margin(Control.new(), 0, 0, UI.S1, 0))
+	body.add_child(_mem_panel.root)
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_mem_win.body.add_child(_scroll)
-	_table = UI.vbox(6)
+	_mem_panel.body.add_child(_scroll)
+	_table = UI.vbox(2)
 	_table.size_flags_horizontal = SIZE_EXPAND_FILL
-	_scroll.add_child(UI.margin(_table, 10, 10, 12, 10))
+	_scroll.add_child(UI.margin(_table, UI.S2, UI.S2, UI.S2, UI.S2))
 	_table.get_parent().size_flags_horizontal = SIZE_EXPAND_FILL
 
-	for i in [0, 1, 2]:
-		UI.pop_in(body.get_child(i), 0.04 * i)
+	Store.changed.connect(_on_store_changed)
+	Store.saved.connect(_on_store_saved)
 	resized.connect(_fit)
 	_fit()
 	_set_view(Store.settings.get("view", "2d"))
 	_refresh_all()
 
 
-## Responsive layout: the rooms list folds into thumbnails and side windows narrow on smaller screens.
+## Responsive layout: the Rooms panel folds to thumbnails and labels drop on narrow windows.
 func _fit() -> void:
 	var w := size.x
-	var compact := w < 1280
-	_rooms_win.custom_minimum_size.x = 112 if compact else 248
-	_mem_win.root.custom_minimum_size.x = clampf(w * 0.28, 330, 430)
-	_run.text = "" if w < 1120 else "Run the course"
-	_test.text = "" if w < 1120 else "Punch test"
+	var compact := w < 1200
+	_rooms_panel.custom_minimum_size.x = 92 if compact else 232
+	(_rooms_panel.find_child("Title", true, false) as Label).text = "" if compact else "Rooms"
+	_mem_panel.root.custom_minimum_size.x = clampf(w * 0.27, 320, 400)
+	var narrow := w < 1100
+	_run.text = "" if narrow else "Run the course"
+	_test.text = "" if narrow else "Punch test"
+	_crumb.visible = not narrow
 	if compact != _compact:
 		_compact = compact
 		if is_node_ready():
 			_build_rooms()
-	_place_overlays()
 
 
-func _place_overlays() -> void:
-	if not _holder:
-		return
-	var sw := _holder.get_node_or_null("Switch") as Control
-	if sw:
-		sw.reset_size()
-		sw.position = Vector2(_holder.size.x - sw.size.x - 12, 12)
-	var hp := _holder.get_node_or_null("HintPill") as Control
-	if hp:
-		hp.reset_size()
-		hp.position = Vector2(12, _holder.size.y - hp.size.y - 12)
-		hp.visible = hp.size.x < _holder.size.x - 24
+func _toolbar() -> Control:
+	var tb := UI.bar(UI.BAR_H)
+	var row: HBoxContainer = tb.row
+	var back := UI.icon_button("arrow-left", "All palaces")
+	back.pressed.connect(func(): back_requested.emit())
+	row.add_child(back)
+	row.add_child(UI.logo(24))
+	_crumb = UI.button("Palaces", "", "FlatButton", "All palaces")
+	_crumb.add_theme_color_override(&"font_color", UI.MUTED)
+	_crumb.pressed.connect(func(): back_requested.emit())
+	row.add_child(_crumb)
+	_title = LineEdit.new()
+	_title.theme_type_variation = "TitleEdit"
+	_title.text = palace.name
+	_title.expand_to_text_length = true
+	_title.custom_minimum_size.x = 80
+	_title.max_length = 60
+	_title.size_flags_vertical = SIZE_SHRINK_CENTER
+	_title.tooltip_text = "Rename this palace"
+	_title.text_changed.connect(func(t): palace.name = t if t.strip_edges() != "" else "Untitled palace"; Store.mark_dirty(palace))
+	_title.text_submitted.connect(func(_t): _title.release_focus())
+	row.add_child(_title)
+	row.add_child(UI.spacer())
 
-
-func _view_switch() -> Control:
 	var track := PanelContainer.new()
-	track.name = "Switch"
-	track.add_theme_stylebox_override(&"panel", UI.soft_shadow(UI.box(UI.LAVENDER_TINT, UI.INK, UI.LINE, 13, Vector4(4, 4, 4, 4)), 10, 3))
-	var seg := UI.hbox(4)
+	track.add_theme_stylebox_override(&"panel", UI.box(UI.SUNKEN, Color.TRANSPARENT, 0, 7, Vector4(2, 2, 2, 2)))
+	track.size_flags_vertical = SIZE_SHRINK_CENTER
+	var seg := UI.hbox(2)
 	track.add_child(seg)
 	var g := ButtonGroup.new()
-	_seg2 = UI.button("2D map", "square", "SegButton", "Flat map of each room")
-	_seg3 = UI.button("3D walk", "box", "SegButton", "Walk through your palace in 3D")
+	_seg2 = UI.button("2D", "square", "SegButton", "Flat map of each room")
+	_seg3 = UI.button("3D", "box", "SegButton", "Walk through your palace in 3D")
 	for b in [_seg2, _seg3]:
 		b.toggle_mode = true
 		b.button_group = g
 		seg.add_child(b)
 	_seg2.pressed.connect(func(): _set_view("2d"))
 	_seg3.pressed.connect(func(): _set_view("3d"))
-	return track
-
-
-func _top_bar() -> Control:
-	var row := UI.hbox(14)
-	var back := UI.icon_button("arrow-left", "All palaces", "Button")
-	back.pressed.connect(func(): back_requested.emit())
-	row.add_child(back)
-	var logo := TextureRect.new()
-	logo.texture = load("res://icon.svg")
-	logo.custom_minimum_size = Vector2(44, 44)
-	logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	logo.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	row.add_child(logo)
-	var names := UI.vbox(0)
-	names.size_flags_horizontal = SIZE_EXPAND_FILL
-	_title = LineEdit.new()
-	_title.theme_type_variation = "TitleEdit"
-	_title.text = palace.name
-	_title.expand_to_text_length = true
-	_title.custom_minimum_size.x = 120
-	_title.size_flags_horizontal = SIZE_SHRINK_BEGIN
-	_title.tooltip_text = "Rename this palace"
-	_title.text_changed.connect(func(t): palace.name = t if t.strip_edges() != "" else "Untitled palace"; Store.mark_dirty(palace))
-	_title.text_submitted.connect(func(_t): _title.release_focus())
-	names.add_child(_title)
-	_guide = UI.label("", "Muted")
-	_guide.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	names.add_child(UI.margin(_guide, 7, 0, 0, 0))
-	row.add_child(names)
+	row.add_child(track)
+	row.add_child(UI.vrule())
+	_test = UI.button("Punch test", "check", "Button", "Test what you remember  (T)")
+	_test.pressed.connect(func(): run_requested.emit("test"))
+	row.add_child(_test)
 	_run = UI.button("Run the course", "play", "PrimaryButton", "Walk the path memory by memory  (R)")
 	_run.pressed.connect(func(): run_requested.emit("run"))
 	row.add_child(_run)
-	_test = UI.button("Punch test", "check", "ButterButton", "Test what you remember  (T)")
-	_test.pressed.connect(func(): run_requested.emit("test"))
-	row.add_child(_test)
-	var more := UI.icon_button("ellipsis-vertical", "More", "Button")
+	var more := UI.icon_button("ellipsis-vertical", "More")
 	var menu := PopupMenu.new()
 	menu.add_item("Export palace to a file…", 0)
 	menu.add_item("Duplicate palace", 1)
@@ -193,9 +172,34 @@ func _top_bar() -> Control:
 	more.add_child(menu)
 	more.pressed.connect(func(): menu.popup(Rect2i(DisplayServer.mouse_get_position(), Vector2i.ZERO)))
 	row.add_child(more)
-	for b in [_run, _test, more, back]:
-		b.size_flags_vertical = SIZE_SHRINK_CENTER
-	return row
+	return tb.root
+
+
+func _status_bar() -> Control:
+	var sb := UI.bar(28, true)
+	_hint = UI.label("", "Muted")
+	_hint.add_theme_font_size_override(&"font_size", 12)
+	_hint.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_hint.size_flags_horizontal = SIZE_EXPAND_FILL
+	sb.row.add_child(_hint)
+	_counts = UI.label("", "Muted")
+	_counts.add_theme_font_size_override(&"font_size", 12)
+	sb.row.add_child(_counts)
+	sb.row.add_child(UI.vrule())
+	_saved = UI.label("All changes saved", "Muted")
+	_saved.add_theme_font_size_override(&"font_size", 12)
+	_saved.custom_minimum_size.x = 112
+	sb.row.add_child(_saved)
+	return sb.root
+
+
+func _on_store_changed(id: String) -> void:
+	if id == palace.id:
+		_saved.text = "Saving…"
+
+
+func _on_store_saved() -> void:
+	_saved.text = "All changes saved"
 
 
 func _unhandled_key_input(e: InputEvent) -> void:
@@ -224,27 +228,25 @@ func _set_view(v: String) -> void:
 		_world.palace = palace
 		_world.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 		_holder.add_child(_world)
-		_holder.move_child(_world, 0)
 		_world.selected.connect(_select)
 		_world.added.connect(_on_added)
 		_world.room_entered.connect(func(r): if r != room: _switch_room(r, false))
 		_world.go_to_room(room)
-		_hint.text = "Drag to look  ·  W A S D to walk  ·  click the floor or a wall to add a memory"
+		_hint.text = "Drag to look around  ·  W A S D or arrow keys to walk  ·  Click the floor or a wall to add a memory"
 	else:
 		_map = MapView.new()
 		_map.palace = palace
 		_map.room = room
 		_map.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 		_holder.add_child(_map)
-		_holder.move_child(_map, 0)
 		_map.selected.connect(_select)
 		_map.added.connect(_on_added)
 		_map.moved.connect(func(_it): Store.mark_dirty(palace))
 		_map.delete_requested.connect(_remove)
 		_map.context.connect(_on_context)
-		_hint.text = "Click to add a memory  ·  drag to move  ·  right-click for options"
+		_hint.text = "Click the room to add a memory  ·  Drag to move  ·  Right-click for options  ·  Delete removes"
+	UI.fade_in(_holder.get_child(_holder.get_child_count() - 1))
 	_sync_selection()
-	_place_overlays.call_deferred()
 
 
 func _redraw_view() -> void:
@@ -280,6 +282,12 @@ func _refresh_all() -> void:
 	_update_guide()
 
 
+func _range_text(first: int, n: int) -> String:
+	if n == 0:
+		return "No memories"
+	return "Memory %d" % first if n == 1 else "Memories %d–%d" % [first, first + n - 1]
+
+
 func _update_guide() -> void:
 	var first := 1
 	for r in palace.rooms:
@@ -288,9 +296,9 @@ func _update_guide() -> void:
 		first += r.items.size()
 	var total := Store.count_items(palace)
 	var n: int = room.get("items", []).size()
-	_guide.text = "%d room%s  ·  %d memor%s on the path" % [palace.rooms.size(), "" if palace.rooms.size() == 1 else "s", total, "y" if total == 1 else "ies"]
-	_room_win.bar.get_node("Title").text = "%s  ·  %s" % [room.get("name", ""), "empty, click to add a memory" if n == 0 else ("memory %d" % first if n == 1 else "memories %d–%d" % [first, first + n - 1])]
-	_mem_win.bar.get_node("Title").text = "Memories  ·  %d" % total
+	_room_panel.bar.get_node("Title").text = "%s   ·   %s" % [room.get("name", ""), _range_text(first, n)]
+	(_mem_count.get_child(0) as Label).text = str(total)
+	_counts.text = "%s  ·  %s" % [UI.plural(palace.rooms.size(), "room", "rooms"), UI.plural(total, "memory", "memories")]
 
 
 func _build_rooms() -> void:
@@ -303,6 +311,9 @@ func _build_rooms() -> void:
 		n += r.items.size()
 	var add := UI.button("" if _compact else "Add a room", "plus", "FlatButton", "Add another room to the path")
 	add.alignment = HORIZONTAL_ALIGNMENT_CENTER if _compact else HORIZONTAL_ALIGNMENT_LEFT
+	add.add_theme_color_override(&"font_color", UI.MUTED)
+	add.add_theme_color_override(&"icon_normal_color", UI.MUTED)
+	add.size_flags_vertical = SIZE_FILL
 	add.pressed.connect(_add_room)
 	_rooms.add_child(add)
 
@@ -312,37 +323,39 @@ func _room_row(r: Dictionary, first: int) -> Control:
 	var b := Button.new()
 	b.theme_type_variation = "FlatButton"
 	b.mouse_default_cursor_shape = CURSOR_POINTING_HAND
-	b.tooltip_text = "%s
-Right-click for room options" % r.name
-	var sel := UI.box(UI.LAVENDER_TINT, UI.INK, UI.LINE, 12, Vector4(6, 6, 6, 6))
-	b.add_theme_stylebox_override(&"normal", sel if cur else UI.box(Color.TRANSPARENT, Color.TRANSPARENT, 0, 12, Vector4(6, 6, 6, 6)))
-	b.add_theme_stylebox_override(&"hover", sel if cur else UI.box(Color(UI.LAVENDER_TINT, 0.6), Color.TRANSPARENT, 0, 12, Vector4(6, 6, 6, 6)))
+	b.tooltip_text = "%s\nRight-click for room options" % r.name
+	var pad := Vector4(UI.S2, 6, UI.S2, 6)
+	var sel := UI.box(UI.ACCENT_TINT, Color.TRANSPARENT, 0, UI.R_CONTROL, pad)
+	b.add_theme_stylebox_override(&"normal", sel if cur else UI.box(Color.TRANSPARENT, Color.TRANSPARENT, 0, UI.R_CONTROL, pad))
+	b.add_theme_stylebox_override(&"hover", sel if cur else UI.box(UI.HOVER, Color.TRANSPARENT, 0, UI.R_CONTROL, pad))
 	b.add_theme_stylebox_override(&"pressed", sel)
 	var row := UI.hbox(10)
-	row.mouse_filter = MOUSE_FILTER_IGNORE
 	row.set_anchors_and_offsets_preset(PRESET_FULL_RECT, PRESET_MODE_MINSIZE, 6)
 	var frame := PanelContainer.new()
 	frame.theme_type_variation = "Frame"
-	frame.mouse_filter = MOUSE_FILTER_IGNORE
 	var th := Thumb.new()
 	th.room = r
-	th.custom_minimum_size = Vector2(80, 50)
+	th.custom_minimum_size = Vector2(64, 40)
 	frame.add_child(th)
+	frame.size_flags_vertical = SIZE_SHRINK_CENTER
 	row.add_child(frame)
 	if not _compact:
 		var t := UI.vbox(0)
-		t.mouse_filter = MOUSE_FILTER_IGNORE
+		t.size_flags_horizontal = SIZE_EXPAND_FILL
+		t.alignment = BoxContainer.ALIGNMENT_CENTER
 		var name := UI.label(r.name, "H3")
 		name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		name.custom_minimum_size.x = 100
+		if cur:
+			name.add_theme_color_override(&"font_color", UI.ACCENT)
 		t.add_child(name)
-		var k: int = r.items.size()
-		t.add_child(UI.label("no memories" if k == 0 else ("memory %d" % first if k == 1 else "memories %d–%d" % [first, first + k - 1]), "Muted"))
-		for c in t.get_children():
-			c.mouse_filter = MOUSE_FILTER_IGNORE
+		var sub := UI.label(_range_text(first, r.items.size()), "Muted")
+		sub.add_theme_font_size_override(&"font_size", 12)
+		t.add_child(sub)
 		row.add_child(t)
 	b.add_child(row)
-	b.custom_minimum_size = Vector2(0, 66)
+	for c in row.find_children("*", "Control", true, false) + [row]:
+		c.mouse_filter = MOUSE_FILTER_IGNORE
+	b.custom_minimum_size = Vector2(0, 54)
 	b.pressed.connect(func(): _switch_room(r))
 	b.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_RIGHT: _switch_room(r); _room_menu())
 	return b
@@ -400,6 +413,7 @@ func _on_room_menu(id: int, i: int) -> void:
 			room.photo = c.get("photo", "")
 			Store.mark_dirty(palace)
 			_redraw_view()
+			_refresh_all()
 		)
 	elif id == 2 or id == 3:
 		palace.rooms.remove_at(i)
@@ -409,7 +423,7 @@ func _on_room_menu(id: int, i: int) -> void:
 		_refresh_all()
 	elif id == 4:
 		var n: int = room.items.size()
-		var what := "" if n == 0 else " and its %d control%s" % [n, "" if n == 1 else "s"]
+		var what := "" if n == 0 else " and its %s" % UI.plural(n, "memory", "memories")
 		UI.confirm(self, "Delete room", "Delete “%s”%s? This cannot be undone." % [room.name, what], "Delete room", func():
 			palace.rooms.erase(room)
 			Store.mark_dirty(palace)
@@ -418,7 +432,7 @@ func _on_room_menu(id: int, i: int) -> void:
 		)
 
 
-# ---------- controls ----------
+# ---------- memories ----------
 
 func _item_in(r: Dictionary, id: String) -> bool:
 	return id != "" and r.get("items", []).any(func(it): return it.id == id)
@@ -450,7 +464,10 @@ func _on_added(it: Dictionary) -> void:
 	_sync_selection()
 	_redraw_view()
 	_refresh_all()
-	(func(): var f = _table.find_child("TitleField", true, false); if f: UI.focus_later(f)).call()
+	var f := _table.find_child("TitleField", true, false)
+	if f:
+		UI.focus_later(f)
+	_scroll_to_selected.call_deferred()
 
 
 func _remove(id: String) -> void:
@@ -464,31 +481,8 @@ func _remove(id: String) -> void:
 				_sync_selection()
 				_redraw_view()
 				_refresh_all()
-				_undo_toast()
+				UI.toast(self, "Memory removed", ["Undo", _do_undo], 6.0)
 				return
-
-
-func _undo_toast() -> void:
-	var p := PanelContainer.new()
-	p.add_theme_stylebox_override(&"panel", UI.box(UI.INK, Color.TRANSPARENT, 0, 4, Vector4(16, 6, 8, 6)))
-	var row := UI.hbox(12)
-	var l := UI.label("Memory removed")
-	l.add_theme_color_override(&"font_color", UI.PAPER)
-	row.add_child(l)
-	var b := UI.button("Undo", "rotate-ccw", "FlatButton", "Ctrl+Z")
-	b.add_theme_color_override(&"font_color", UI.BUTTER)
-	b.add_theme_color_override(&"icon_normal_color", UI.BUTTER)
-	b.pressed.connect(func(): _do_undo(); p.queue_free())
-	row.add_child(b)
-	p.add_child(row)
-	add_child(p)
-	p.set_anchors_and_offsets_preset(PRESET_CENTER_BOTTOM, PRESET_MODE_MINSIZE, 28)
-	p.grow_horizontal = GROW_DIRECTION_BOTH
-	p.grow_vertical = GROW_DIRECTION_BEGIN
-	var tw := p.create_tween()
-	tw.tween_interval(6.0)
-	tw.tween_property(p, "modulate:a", 0.0, 0.3)
-	tw.tween_callback(p.queue_free)
 
 
 func _do_undo() -> void:
@@ -512,13 +506,14 @@ func _move(id: String, step: int) -> void:
 			Store.mark_dirty(palace)
 			_redraw_view()
 			_refresh_all()
+			_scroll_to_selected.call_deferred()
 			return
 
 
 func _on_context(it: Dictionary, _at: Vector2) -> void:
 	var menu := PopupMenu.new()
 	menu.add_item("Change picture…", 0)
-	menu.add_item("Remove control", 1)
+	menu.add_item("Remove memory", 1)
 	menu.id_pressed.connect(func(id): if id == 0: _pick_picture(it) else: _remove(it.id))
 	menu.popup_hide.connect(menu.queue_free)
 	add_child(menu)
@@ -546,14 +541,14 @@ func _on_palace_menu(id: int) -> void:
 				palace.name.validate_filename() + ".palace")
 		1:
 			var c := Store.duplicate_palace(palace)
-			UI.toast(self, "Made “%s”" % c.name)
+			UI.toast(self, "Made “%s”. Find it under Palaces." % c.name)
 		2:
 			UI.confirm(self, "Delete palace", "Delete “%s” with all its rooms and memories? This cannot be undone. Export it first if you want a copy." % palace.name, "Delete palace", func():
 				Store.delete_palace(palace)
 				back_requested.emit())
 
 
-# ---------- control descriptions table ----------
+# ---------- memories list ----------
 
 func _build_table() -> void:
 	for c in _table.get_children():
@@ -564,81 +559,77 @@ func _build_table() -> void:
 	for r in palace.rooms:
 		_table.add_child(_room_header(r))
 		if r.items.is_empty():
-			var e := UI.label("Nothing here yet. Open this room and click anywhere to add a memory.", "Muted", true)
-			_table.add_child(UI.margin(e, 8, 0, 8, 8))
+			var e := UI.label("No memories in this room yet. Open it and click anywhere to add one.", "Muted", true)
+			_table.add_child(UI.margin(e, UI.S2, 0, UI.S2, UI.S2))
 		for it in r.items:
 			_table.add_child(_row(r, it, n, n == total))
 			n += 1
 
 
 func _room_header(r: Dictionary) -> Control:
-	var p := PanelContainer.new()
-	var cur := r == room
-	var sb := UI.box(UI.TEAL if cur else Color.TRANSPARENT, UI.INK if cur else Color.TRANSPARENT, UI.LINE if cur else 0, 10, Vector4(12, 5, 12, 5))
-	p.add_theme_stylebox_override(&"panel", sb)
-	var row := UI.hbox(8)
+	var cur: bool = r == room
+	var b := Button.new()
+	b.theme_type_variation = "FlatButton"
+	b.custom_minimum_size.y = 28
+	b.mouse_default_cursor_shape = CURSOR_POINTING_HAND
+	b.tooltip_text = "Open %s" % r.name
+	b.add_theme_stylebox_override(&"normal", UI.box(Color.TRANSPARENT, Color.TRANSPARENT, 0, UI.R_CONTROL, Vector4(UI.S2, 2, UI.S2, 2)))
+	var row := UI.hbox(UI.S2)
+	row.set_anchors_and_offsets_preset(PRESET_FULL_RECT, PRESET_MODE_MINSIZE, UI.S2)
+	row.mouse_filter = MOUSE_FILTER_IGNORE
 	var l := UI.label(r.name.to_upper(), "Caps")
-	l.add_theme_color_override(&"font_color", UI.INK if cur else UI.MUTED)
+	l.add_theme_color_override(&"font_color", UI.ACCENT if cur else UI.SUBTLE)
+	l.size_flags_horizontal = SIZE_EXPAND_FILL
+	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	l.mouse_filter = MOUSE_FILTER_IGNORE
 	row.add_child(l)
-	row.add_child(UI.spacer())
-	var c := UI.label("%d" % r.items.size(), "Caps")
-	c.add_theme_color_override(&"font_color", UI.INK if cur else UI.MUTED)
+	var c := UI.label(str(r.items.size()), "Caps")
+	c.mouse_filter = MOUSE_FILTER_IGNORE
 	row.add_child(c)
-	p.add_child(row)
-	p.mouse_default_cursor_shape = CURSOR_POINTING_HAND
-	p.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: _switch_room(r))
-	return p
+	b.add_child(row)
+	b.pressed.connect(func(): _switch_room(r))
+	return b
 
 
 func _row(r: Dictionary, it: Dictionary, num: int, is_finish: bool) -> Control:
 	var sel: bool = it.id == selected_id
 	var p := PanelContainer.new()
-	var sb := UI.box(UI.PEACH.lerp(UI.PAPER, 0.55) if sel else UI.PAPER, UI.INK if sel else Color(UI.INK, 0.18), UI.LINE, 12, Vector4(10, 10, 12, 10))
+	var pad := Vector4(UI.S2, UI.S2, UI.S2, UI.S2)
+	var sb := UI.box(UI.ACCENT_TINT if sel else Color.TRANSPARENT, Color.TRANSPARENT, 0, UI.R_CONTROL, pad)
 	p.add_theme_stylebox_override(&"panel", sb)
 	if not sel:
-		var hov := sb.duplicate()
-		hov.bg_color = UI.BUTTER_TINT
-		hov.border_color = Color(UI.INK, 0.5)
+		var hov := UI.box(UI.HOVER, Color.TRANSPARENT, 0, UI.R_CONTROL, pad)
 		p.mouse_entered.connect(func(): p.add_theme_stylebox_override(&"panel", hov))
 		p.mouse_exited.connect(func(): p.add_theme_stylebox_override(&"panel", sb))
 	p.set_meta("item_id", it.id)
-	var col := UI.vbox(10)
+	var col := UI.vbox(UI.S3)
 	p.add_child(col)
 	var line := UI.hbox(10)
 	col.add_child(line)
-	var numl := UI.label(str(num))
-	numl.add_theme_font_override(&"font", UI.font("black"))
-	numl.add_theme_font_size_override(&"font_size", 15)
-	numl.add_theme_color_override(&"font_color", Color.WHITE)
-	numl.add_theme_stylebox_override(&"normal", UI.box(UI.PINK, UI.INK, UI.LINE, 13, Vector4(7, 1, 7, 1)))
-	numl.custom_minimum_size = Vector2(32, 26)
-	numl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	numl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	numl.size_flags_vertical = SIZE_SHRINK_CENTER
-	numl.tooltip_text = "The finish" if is_finish else "Memory %d on the path" % num
-	line.add_child(numl)
-	line.add_child(_picture_box(it, 44))
-	var txt := UI.vbox(2)
+	var tag := UI.number_tag(num)
+	tag.tooltip_text = "The finish" if is_finish else "Memory %d on the path" % num
+	line.add_child(tag)
+	line.add_child(_picture_box(it, 32))
+	var txt := UI.vbox(0)
 	txt.size_flags_horizontal = SIZE_EXPAND_FILL
-	var title := UI.label(it.title if it.title != "" else "What should this remind you of?", "H3")
+	txt.alignment = BoxContainer.ALIGNMENT_CENTER
+	var title := UI.label(it.title if it.title != "" else "Untitled memory", "H3")
 	if it.title == "":
-		title.add_theme_color_override(&"font_color", UI.MUTED)
+		title.add_theme_color_override(&"font_color", UI.SUBTLE)
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	txt.add_child(title)
 	if it.story != "" and not sel:
-		var st := UI.label(it.story, "Muted")
+		var st := UI.label(it.story.replace("\n", " "), "Muted")
+		st.add_theme_font_size_override(&"font_size", 12)
 		st.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		txt.add_child(st)
 	line.add_child(txt)
 	if it.recall != "":
-		var mark := UI.label("✓ GOT IT" if it.recall == "ok" else "✗ MISSED", "Caps")
-		mark.add_theme_color_override(&"font_color", UI.GREEN if it.recall == "ok" else UI.RED)
+		var mark := UI.badge("Got it" if it.recall == "ok" else "Missed", "success" if it.recall == "ok" else "danger")
 		mark.tooltip_text = "Result of your last punch test"
 		line.add_child(mark)
 	if sel:
-		var ed := _editor(r, it)
-		col.add_child(ed)
-		UI.pop_in(ed, 0.0, 0.97)
+		col.add_child(_editor(r, it))
 	else:
 		p.mouse_default_cursor_shape = CURSOR_POINTING_HAND
 		p.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: _select(it.id))
@@ -655,23 +646,30 @@ func _picture_box(it: Dictionary, s: int) -> Control:
 		tr.custom_minimum_size = Vector2(s, s)
 		return tr
 	var l := UI.label(it.icon)
-	l.add_theme_font_size_override(&"font_size", int(s * 0.7))
+	l.add_theme_font_size_override(&"font_size", int(s * 0.72))
 	l.custom_minimum_size = Vector2(s, s)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	return l
 
 
+func _field_label(text: String) -> Label:
+	var l := UI.label(text, "Muted")
+	l.add_theme_font_override(&"font", UI.font("medium"))
+	l.add_theme_font_size_override(&"font_size", 12)
+	return l
+
+
 func _editor(r: Dictionary, it: Dictionary) -> Control:
-	var ed := UI.vbox(10)
-	var top := UI.hbox(12)
+	var ed := UI.vbox(UI.S3)
+	var top := UI.hbox(UI.S3)
 	ed.add_child(top)
 	var pic := Button.new()
-	pic.theme_type_variation = "Button"
-	pic.custom_minimum_size = Vector2(84, 84)
+	pic.custom_minimum_size = Vector2(72, 72)
 	pic.tooltip_text = "Change picture"
 	pic.mouse_default_cursor_shape = CURSOR_POINTING_HAND
-	var pb := _picture_box(it, 64)
+	pic.size_flags_vertical = SIZE_SHRINK_BEGIN
+	var pb := _picture_box(it, 48)
 	pb.mouse_filter = MOUSE_FILTER_IGNORE
 	var cc := CenterContainer.new()
 	cc.mouse_filter = MOUSE_FILTER_IGNORE
@@ -680,15 +678,17 @@ func _editor(r: Dictionary, it: Dictionary) -> Control:
 	pic.add_child(cc)
 	pic.pressed.connect(func(): _pick_picture(it))
 	top.add_child(pic)
-	var f := UI.vbox(6)
+	var f := UI.vbox(UI.S1)
 	f.size_flags_horizontal = SIZE_EXPAND_FILL
-	f.add_child(UI.label("What to remember", "Caps"))
+	f.add_child(_field_label("What to remember"))
 	var title := LineEdit.new()
 	title.name = "TitleField"
 	title.text = it.title
 	title.placeholder_text = "e.g. Mars, the 4th planet"
+	title.max_length = 120
 	f.add_child(title)
 	var ideas := UI.hbox(2)
+	ideas.custom_minimum_size.y = 28
 	f.add_child(ideas)
 	top.add_child(f)
 	var fill_ideas := func():
@@ -702,13 +702,13 @@ func _editor(r: Dictionary, it: Dictionary) -> Control:
 				Store.mark_dirty(palace)
 				_redraw_view()
 				_build_table())
-			b.custom_minimum_size = Vector2(36, 36)
-			b.add_theme_font_size_override(&"font_size", 20)
+			b.custom_minimum_size = Vector2(28, 28)
+			b.add_theme_font_size_override(&"font_size", 16)
 			b.tooltip_text = "Use this picture"
 			ideas.add_child(b)
 	title.text_changed.connect(func(t):
 		it.title = t
-		# a fresh control borrows the first idea until the user picks a picture themselves
+		# a fresh memory borrows the first idea until the user picks a picture themselves
 		if it.image == "" and (it.icon == "⭐" or it.get("auto_icon", false)):
 			var s := Emoji.suggest(t, 1)
 			if not s.is_empty():
@@ -719,20 +719,23 @@ func _editor(r: Dictionary, it: Dictionary) -> Control:
 		Store.mark_dirty(palace)
 		_redraw_view()
 		fill_ideas.call())
-	title.text_submitted.connect(func(_t): ed.get_node("Story").grab_focus())
+	title.text_submitted.connect(func(_t): ed.get_node("StoryBox/Story").grab_focus())
 	fill_ideas.call()
 
-	ed.add_child(UI.label("The story: make it big, funny or strange", "Caps"))
+	var sbx := UI.vbox(UI.S1)
+	sbx.name = "StoryBox"
+	sbx.add_child(_field_label("The story"))
 	var story := TextEdit.new()
 	story.name = "Story"
 	story.text = it.story
 	story.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
-	story.placeholder_text = "Picture it in this exact spot. What is it doing? What does it sound or smell like?"
-	story.custom_minimum_size.y = 110
+	story.placeholder_text = "Make it big, funny or strange. What is it doing in this exact spot?"
+	story.custom_minimum_size.y = 96
 	story.text_changed.connect(func(): it.story = story.text; Store.mark_dirty(palace))
-	ed.add_child(story)
+	sbx.add_child(story)
+	ed.add_child(sbx)
 
-	var actions := UI.hbox(8)
+	var actions := UI.hbox(UI.S2)
 	var i: int = r.items.find(it)
 	var up := UI.button("Earlier", "arrow-up", "Button", "Move earlier on the path")
 	up.disabled = i == 0
@@ -743,21 +746,11 @@ func _editor(r: Dictionary, it: Dictionary) -> Control:
 	actions.add_child(up)
 	actions.add_child(down)
 	actions.add_child(UI.spacer())
-	var del := UI.button("Remove", "trash-2", "FlatButton", "Remove this control (Delete)")
-	del.add_theme_color_override(&"font_color", UI.RED)
-	del.add_theme_color_override(&"font_hover_color", UI.RED)
-	del.add_theme_color_override(&"icon_normal_color", UI.RED)
-	del.add_theme_color_override(&"icon_hover_color", UI.RED)
+	var del := UI.button("Remove", "trash-2", "DangerButton", "Remove this memory  (Delete)")
 	del.pressed.connect(func(): _remove(it.id))
 	actions.add_child(del)
 	ed.add_child(actions)
 	return ed
-
-
-func _focus_title() -> void:
-	var f := _table.find_child("TitleField", true, false)
-	if f:
-		f.grab_focus()
 
 
 func _scroll_to_selected() -> void:

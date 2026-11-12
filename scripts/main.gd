@@ -8,7 +8,7 @@ func _ready() -> void:
 	_fit_window()
 	get_tree().root.theme = UI.build_theme()
 	var bg := ColorRect.new()
-	bg.color = UI.GROUND
+	bg.color = UI.BG
 	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(bg)
 	show_home()
@@ -37,7 +37,7 @@ func _swap(s: Control) -> void:
 		_screen.queue_free()
 	_screen = s
 	add_child(s)
-	UI.pop_in(s, 0.0, 0.985)
+	UI.fade_in(s)
 
 
 func show_home() -> void:

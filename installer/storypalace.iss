@@ -2,7 +2,7 @@
 ; Build: ISCC installer\storypalace.iss  ->  build\installer\StoryPalace-Setup-<version>.exe
 
 #define AppName "StoryPalace"
-#define AppVersion "1.1.0"
+#define AppVersion "1.2.0"
 #define Publisher "Storybook Interactive Private Limited"
 
 [Setup]

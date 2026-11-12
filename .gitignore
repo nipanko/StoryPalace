@@ -3,3 +3,4 @@ build/
 tools/
 .impeccable/
 *.tmp
+graphify-out/

@@ -2,6 +2,7 @@ extends Node
 ## Palaces on disk: one JSON file per palace in user://palaces, pictures in user://images.
 
 signal changed(palace_id: String)
+signal saved
 
 const PALACE_DIR := "user://palaces/"
 const IMAGE_DIR := "user://images/"
@@ -116,7 +117,10 @@ func flush() -> void:
 		var p := get_palace(id)
 		if not p.is_empty():
 			_write_atomic(PALACE_DIR + id + ".json", JSON.stringify(p, "\t"))
+	var wrote := not _dirty.is_empty()
 	_dirty.clear()
+	if wrote:
+		saved.emit()
 
 
 ## Write to a temp file first so a crash mid-write never destroys the old palace.

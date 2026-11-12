@@ -6,101 +6,110 @@ signal open_requested(palace: Dictionary)
 
 
 class Symbol extends Control:
-	## Legend symbols drawn with the same stickers the map uses.
+	## Getting-started symbols drawn with the same markers the map uses.
 	var kind := "control"
 
 	func _ready() -> void:
-		custom_minimum_size = Vector2(58, 58)
+		custom_minimum_size = Vector2(48, 48)
 
 	func _draw() -> void:
 		var c := size * 0.5
 		match kind:
-			"start": Course.draw_start(self, c, 20, c + Vector2.UP)
-			"control": Course.draw_control(self, c, 19, 1, {"icon": "🍎"})
-			"finish": Course.draw_control(self, c, 15, 8, {"icon": "🏁"}, {"finish": true, "show_number": false})
+			"start": Course.draw_start(self, c, 15, c + Vector2.UP)
+			"control": Course.draw_control(self, c + Vector2(-4, 3), 15, 1, {"icon": "🍎"})
+			"finish": Course.draw_control(self, c, 13, 8, {"icon": "🏁"}, {"finish": true, "show_number": false})
 
 
-const TILE_BARS := [UI.LAVENDER, UI.TEAL, UI.PEACH, UI.BUTTER]
+const CARD_W := 288
 
 var _grid: HFlowContainer
+var _count: PanelContainer
+var _query := ""
 
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	var desk := UI.Desk.new()
-	desk.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	add_child(desk)
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
-	var col := UI.vbox(28)
-	col.size_flags_horizontal = SIZE_EXPAND_FILL
-	scroll.add_child(UI.margin(col, 48, 36, 48, 28))
-	col.get_parent().size_flags_horizontal = SIZE_EXPAND_FILL
+	add_child(UI.backdrop())
+	var root := UI.vbox(0)
+	root.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	add_child(root)
 
-	var head := UI.hbox(16)
-	var mark := TextureRect.new()
-	mark.texture = load("res://icon.svg")
-	mark.custom_minimum_size = Vector2(64, 64)
-	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	mark.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	head.add_child(mark)
-	var names := UI.vbox(0)
-	var name := UI.label("StoryPalace", "Display")
-	name.add_theme_font_size_override(&"font_size", 46)
-	names.add_child(name)
-	names.add_child(UI.label("Remember anything, one room at a time.", "Muted"))
-	head.add_child(names)
-	head.add_child(UI.spacer())
-	var imp := UI.button("Import a palace", "upload", "Button", "Open a .palace file someone shared with you")
+	var tb := UI.bar(UI.BAR_H)
+	tb.row.add_child(UI.margin(UI.logo(28), UI.S1, 0, 0, 0))
+	tb.row.add_child(UI.label("StoryPalace", "H2"))
+	tb.row.add_child(UI.spacer())
+	var search := LineEdit.new()
+	search.placeholder_text = "Search palaces"
+	search.right_icon = UI.icon_px("search", 16, UI.SUBTLE)
+	search.clear_button_enabled = true
+	search.custom_minimum_size.x = 220
+	search.size_flags_vertical = SIZE_SHRINK_CENTER
+	search.text_changed.connect(func(t): _query = t.strip_edges(); _fill(false))
+	tb.row.add_child(search)
+	tb.row.add_child(UI.vrule())
+	var imp := UI.button("Import", "upload", "Button", "Open a .palace file someone shared with you")
 	imp.pressed.connect(_import)
-	imp.size_flags_vertical = SIZE_SHRINK_CENTER
-	head.add_child(imp)
+	tb.row.add_child(imp)
 	var new := UI.button("New palace", "plus", "PrimaryButton")
 	new.pressed.connect(_new_palace)
-	new.size_flags_vertical = SIZE_SHRINK_CENTER
-	head.add_child(new)
+	tb.row.add_child(new)
+	root.add_child(tb.root)
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	root.add_child(scroll)
+	var col := UI.vbox(UI.S6)
+	col.size_flags_horizontal = SIZE_EXPAND_FILL
+	col.size_flags_vertical = SIZE_EXPAND_FILL
+	var m := UI.margin(col, UI.S8, UI.S6, UI.S8, UI.S4)
+	m.size_flags_horizontal = SIZE_EXPAND_FILL
+	m.size_flags_vertical = SIZE_EXPAND_FILL
+	scroll.add_child(m)
+
+	var head := UI.vbox(UI.S1)
+	var hrow := UI.hbox(UI.S2)
+	hrow.add_child(UI.label("Palaces", "Display"))
+	_count = UI.badge("0")
+	hrow.add_child(_count)
+	head.add_child(hrow)
+	head.add_child(UI.label("Remember anything, one room at a time.", "Muted"))
 	col.add_child(head)
 
 	if not Store.settings.get("seen_intro", false):
-		var lg := _legend()
-		col.add_child(lg)
-		UI.pop_in(lg, 0.05, 0.97)
+		col.add_child(_getting_started())
 
-	col.add_child(UI.label("Your palaces", "H2"))
 	_grid = HFlowContainer.new()
-	_grid.add_theme_constant_override(&"h_separation", 24)
-	_grid.add_theme_constant_override(&"v_separation", 24)
+	_grid.add_theme_constant_override(&"h_separation", UI.S4)
+	_grid.add_theme_constant_override(&"v_separation", UI.S4)
 	col.add_child(_grid)
 	_fill(true)
 
+	var push := Control.new()
+	push.size_flags_vertical = SIZE_EXPAND_FILL
+	col.add_child(push)
 	var foot := UI.label("Built with 💖 by Storybook Interactive Private Limited", "Muted")
+	foot.add_theme_font_size_override(&"font_size", 12)
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(UI.margin(foot, 0, 24, 0, 0))
+	col.add_child(foot)
 	Store.changed.connect(func(_id): if is_inside_tree(): _fill(false))
 
 
-func _legend() -> Control:
-	var w := UI.window("How it works", UI.BUTTER, 18)
-	var close := UI.bar_button("x", "Hide this")
+func _getting_started() -> Control:
+	var w := UI.panel("Getting started", UI.S4)
+	var close := UI.icon_button("x", "Hide this")
 	close.pressed.connect(func(): Store.settings.seen_intro = true; Store.save_settings(); w.root.queue_free())
 	w.bar.add_child(close)
-	var row := UI.hbox(28)
+	var row := UI.hbox(UI.S6)
 	w.body.add_child(row)
-	var intro := UI.vbox(4)
-	intro.custom_minimum_size.x = 230
-	intro.add_child(UI.label("Build a palace", "H2"))
-	intro.add_child(UI.label("A memory palace is a walk through a place you know, with a striking picture at every stop.", "Muted", true))
-	row.add_child(intro)
 	for e in [["start", "1. Pick a place", "Your home, your school, your street, or a ready-made room."],
-			["control", "2. Stick memories on it", "Click a spot and add a vivid picture for each thing to remember."],
+			["control", "2. Place memories", "Click a spot and add a vivid picture for each thing to remember."],
 			["finish", "3. Walk it, then test", "Run the course in order, then take the punch test to see what stuck."]]:
-		var b := UI.hbox(10)
+		var b := UI.hbox(UI.S3)
 		b.size_flags_horizontal = SIZE_EXPAND_FILL
 		var s := Symbol.new()
 		s.kind = e[0]
+		s.size_flags_vertical = SIZE_SHRINK_BEGIN
 		b.add_child(s)
 		var t := UI.vbox(2)
 		t.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -115,90 +124,94 @@ func _fill(animate: bool) -> void:
 	for c in _grid.get_children():
 		_grid.remove_child(c)
 		c.queue_free()
+	var shown: Array = Store.palaces.filter(func(p): return _query == "" or p.name.containsn(_query))
+	(_count.get_child(0) as Label).text = str(Store.palaces.size())
 	var i := 0
-	for p in Store.palaces:
-		var t := _tile(p, TILE_BARS[i % TILE_BARS.size()])
+	for p in shown:
+		var t := _card(p)
 		_grid.add_child(t)
 		if animate:
-			UI.pop_in(t, 0.06 + 0.04 * mini(i, 8))
+			UI.appear(t, 0.03 * mini(i, 10))
 		i += 1
+	if _query != "":
+		if shown.is_empty():
+			_grid.add_child(UI.label("No palaces match “%s”." % _query, "Muted"))
+		return
 	var add := Button.new()
-	add.theme_type_variation = "FlatButton"
-	add.custom_minimum_size = Vector2(320, 300)
+	add.custom_minimum_size = Vector2(CARD_W, 268)
 	add.mouse_default_cursor_shape = CURSOR_POINTING_HAND
 	add.tooltip_text = "Start a new palace"
-	add.add_theme_stylebox_override(&"normal", UI.box(Color(UI.PAPER, 0.6), Color(UI.INK, 0.4), UI.LINE, UI.RADIUS))
-	add.add_theme_stylebox_override(&"hover", UI.box(UI.PINK_TINT, UI.INK, UI.LINE, UI.RADIUS))
-	add.add_theme_stylebox_override(&"pressed", UI.box(UI.PINK_TINT, UI.INK, UI.LINE, UI.RADIUS))
-	UI.juice(add, 1.02)
+	add.add_theme_stylebox_override(&"normal", UI.box(Color.TRANSPARENT, UI.BORDER_STRONG, UI.LINE, UI.R_PANEL))
+	add.add_theme_stylebox_override(&"hover", UI.box(UI.SURFACE, UI.ACCENT, UI.LINE, UI.R_PANEL))
+	add.add_theme_stylebox_override(&"pressed", UI.box(UI.ACCENT_TINT, UI.ACCENT, UI.LINE, UI.R_PANEL))
 	var cc := CenterContainer.new()
 	cc.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	var v := UI.vbox(10)
-	var plus := PanelContainer.new()
-	plus.add_theme_stylebox_override(&"panel", UI.box(UI.PINK, UI.INK, UI.LINE, 26, Vector4(12, 12, 12, 12)))
-	plus.size_flags_horizontal = SIZE_SHRINK_CENTER
-	var pi := TextureRect.new()
-	pi.texture = UI.icon("plus")
-	pi.custom_minimum_size = Vector2(26, 26)
-	pi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	pi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	plus.add_child(pi)
+	var v := UI.vbox(UI.S2)
+	var plus := TextureRect.new()
+	plus.texture = UI.icon("plus")
+	plus.modulate = UI.ACCENT
+	plus.custom_minimum_size = Vector2(24, 24)
+	plus.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	plus.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	v.add_child(plus)
-	var l := UI.label("Start a new palace", "H2")
+	var l := UI.label("New palace", "H3")
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(l)
-	var hint := UI.label("Your home, a walk to school, any place you know by heart", "Muted", true)
-	hint.custom_minimum_size.x = 240
+	var hint := UI.label("Start from a ready-made room or a photo of a place you know", "Muted", true)
+	hint.custom_minimum_size.x = 200
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(hint)
-	for c in [cc, v, plus, pi, l, hint]:
+	for c in [cc, v, plus, l, hint]:
 		c.mouse_filter = MOUSE_FILTER_IGNORE
 	cc.add_child(v)
 	add.add_child(cc)
 	add.pressed.connect(_new_palace)
 	_grid.add_child(add)
 	if animate:
-		UI.pop_in(add, 0.06 + 0.04 * mini(i, 8))
+		UI.appear(add, 0.03 * mini(i, 10))
 
 
-## A palace as a little window: its name in the title bar, its first room below.
-func _tile(p: Dictionary, bar: Color) -> Control:
+## A palace card: its first room with the path, then name, counts and test status.
+func _card(p: Dictionary) -> Control:
 	var b := Button.new()
-	b.theme_type_variation = "FlatButton"
-	b.custom_minimum_size = Vector2(320, 300)
+	b.custom_minimum_size = Vector2(CARD_W, 268)
 	b.mouse_default_cursor_shape = CURSOR_POINTING_HAND
-	for st in ["normal", "hover", "pressed", "focus"]:
-		b.add_theme_stylebox_override(st, UI.box(Color.TRANSPARENT, Color.TRANSPARENT, 0, UI.RADIUS, Vector4.ZERO))
-	b.tooltip_text = "Open “%s”" % p.name
-	UI.juice(b, 1.025)
-	var w := UI.window(p.name, bar, 10)
-	w.root.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	var col := UI.vbox(8)
-	w.body.add_child(col)
-	var frame := PanelContainer.new()
-	frame.theme_type_variation = "Frame"
+	b.tooltip_text = "Open “%s”\nRight-click for more" % p.name
+	b.add_theme_stylebox_override(&"normal", UI.box(UI.SURFACE, UI.BORDER, UI.LINE, UI.R_PANEL))
+	b.add_theme_stylebox_override(&"hover", UI.box(UI.SURFACE, UI.ACCENT, UI.LINE, UI.R_PANEL))
+	b.add_theme_stylebox_override(&"pressed", UI.box(UI.ACCENT_TINT, UI.ACCENT, UI.LINE, UI.R_PANEL))
+	var col := UI.vbox(0)
+	col.set_anchors_and_offsets_preset(PRESET_FULL_RECT, PRESET_MODE_MINSIZE, UI.LINE)
 	var th := Thumb.new()
-	th.custom_minimum_size = Vector2(292, 168)
+	th.custom_minimum_size = Vector2(CARD_W - 2, 172)
 	if not p.rooms.is_empty():
 		th.room = p.rooms[0]
 		th.palace = p
-	frame.add_child(th)
-	col.add_child(frame)
+	col.add_child(th)
+	var rule := ColorRect.new()
+	rule.color = UI.BORDER
+	rule.custom_minimum_size.y = 1
+	col.add_child(rule)
+	var info := UI.vbox(UI.S1)
+	var name := UI.label(p.name, "H2")
+	name.add_theme_font_size_override(&"font_size", 15)
+	name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	info.add_child(name)
 	var n := Store.count_items(p)
-	col.add_child(UI.label("%d room%s  ·  %d memor%s" % [p.rooms.size(), "" if p.rooms.size() == 1 else "s", n, "y" if n == 1 else "ies"], "H3"))
-	var chip := PanelContainer.new()
-	var tested: bool = p.practiced > 0
-	chip.add_theme_stylebox_override(&"panel", UI.box(UI.TEAL if tested else UI.LAVENDER_TINT, UI.INK, UI.LINE, 11, Vector4(10, 2, 10, 2)))
-	chip.size_flags_horizontal = SIZE_SHRINK_BEGIN
-	var res := UI.ago(p.practiced)
+	var meta := UI.hbox(UI.S2)
+	var counts := UI.label("%s  ·  %s" % [UI.plural(p.rooms.size(), "room", "rooms"), UI.plural(n, "memory", "memories")], "Muted")
+	counts.size_flags_horizontal = SIZE_EXPAND_FILL
+	meta.add_child(counts)
+	info.add_child(meta)
+	var status := UI.ago(p.practiced)
 	if p.score >= 0:
-		res += "  ·  %d%% remembered" % p.score
-	chip.add_child(UI.label(res, "Caps"))
-	col.add_child(chip)
-	b.add_child(w.root)
-	# the whole window is one button: children must not swallow the click
-	w.root.mouse_filter = MOUSE_FILTER_IGNORE
-	for c in w.root.find_children("*", "Control", true, false):
+		status += "  ·  %d%%" % p.score
+	info.add_child(UI.margin(UI.badge(status, "neutral" if p.practiced <= 0 else ("success" if p.score >= 80 else "accent")), 0, UI.S1, 0, 0))
+	col.add_child(UI.margin(info, UI.S3, UI.S3, UI.S3, UI.S3))
+	b.add_child(col)
+	# the whole card is one button: children must not swallow the click
+	col.mouse_filter = MOUSE_FILTER_IGNORE
+	for c in col.find_children("*", "Control", true, false):
 		c.mouse_filter = MOUSE_FILTER_IGNORE
 	b.pressed.connect(func(): open_requested.emit(p))
 	b.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_RIGHT: _tile_menu(p))

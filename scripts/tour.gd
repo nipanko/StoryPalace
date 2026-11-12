@@ -25,6 +25,7 @@ var _punch: HBoxContainer
 var _title: Label
 var _room_title: Label
 var _card_win: Control
+var _bar: ProgressBar
 
 
 func setup(p: Dictionary, m: String, v: String, start_room: Dictionary) -> void:
@@ -37,53 +38,52 @@ func setup(p: Dictionary, m: String, v: String, start_room: Dictionary) -> void:
 func _ready() -> void:
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_STOP
-	var desk := UI.Desk.new()
-	desk.sparkles = false
-	desk.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	add_child(desk)
+	add_child(UI.backdrop())
 	var root := UI.vbox(0)
 	root.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	add_child(root)
 
-	var row := UI.hbox(14)
-	var close := UI.icon_button("x", "Back to editing  (Esc)", "Button")
+	var tb := UI.bar(UI.BAR_H)
+	var close := UI.icon_button("x", "Back to editing  (Esc)")
 	close.pressed.connect(_close)
-	close.size_flags_vertical = SIZE_SHRINK_CENTER
-	row.add_child(close)
-	var names := UI.vbox(0)
-	_title = UI.label("", "Display")
-	_title.add_theme_font_size_override(&"font_size", 34)
-	names.add_child(_title)
-	names.add_child(UI.label(palace.name, "Muted"))
-	row.add_child(names)
-	row.add_child(UI.spacer())
-	_punch = UI.hbox(5)
+	tb.row.add_child(close)
+	_title = UI.label("", "H2")
+	tb.row.add_child(_title)
+	tb.row.add_child(UI.vrule())
+	var pname := UI.label(palace.name, "Muted")
+	pname.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	pname.size_flags_horizontal = SIZE_EXPAND_FILL
+	tb.row.add_child(pname)
+	_punch = UI.hbox(UI.S1)
 	_punch.size_flags_vertical = SIZE_SHRINK_CENTER
-	row.add_child(_punch)
-	root.add_child(UI.margin(row, 20, 14, 20, 10))
+	tb.row.add_child(_punch)
+	root.add_child(tb.root)
+	_bar = ProgressBar.new()
+	_bar.show_percentage = false
+	_bar.custom_minimum_size.y = 3
+	_bar.add_theme_stylebox_override(&"background", UI.box(UI.SUNKEN, Color.TRANSPARENT, 0, 0, Vector4.ZERO))
+	_bar.add_theme_stylebox_override(&"fill", UI.box(UI.ACCENT, Color.TRANSPARENT, 0, 0, Vector4.ZERO))
+	root.add_child(_bar)
 
-	var body := UI.hbox(18)
-	body.size_flags_vertical = SIZE_EXPAND_FILL
-	var m := UI.margin(body, 20, 4, 20, 20)
+	var body := UI.hbox(UI.S3)
+	var m := UI.margin(body, UI.S3, UI.S3, UI.S3, UI.S3)
 	m.size_flags_vertical = SIZE_EXPAND_FILL
 	root.add_child(m)
-	var mw := UI.window("", UI.LAVENDER, 0)
+	var mw := UI.panel("")
 	mw.root.size_flags_horizontal = SIZE_EXPAND_FILL
 	_room_title = mw.bar.get_node("Title")
 	body.add_child(mw.root)
 	_holder = Control.new()
 	_holder.clip_contents = true
 	mw.body.add_child(_holder)
-	var cw := UI.window("", UI.PEACH, 22)
+	var cw := UI.panel("", UI.S6 - 4)
 	_card_win = cw.root
 	_progress = cw.bar.get_node("Title")
 	body.add_child(cw.root)
-	_card = UI.vbox(16)
+	_card = UI.vbox(UI.S4)
 	cw.body.add_child(_card)
-	resized.connect(func(): _card_win.custom_minimum_size.x = clampf(size.x * 0.3, 340, 460))
-	_card_win.custom_minimum_size.x = 420
-	UI.pop_in(mw.root)
-	UI.pop_in(cw.root, 0.05)
+	resized.connect(func(): _card_win.custom_minimum_size.x = clampf(size.x * 0.3, 340, 440))
+	_card_win.custom_minimum_size.x = 400
 
 	if view == "3d":
 		_world = PalaceWorld.new()
@@ -119,6 +119,8 @@ func _begin(m: String, retest: bool) -> void:
 			_states.erase(id)
 	_k = -1
 	_revealed = false
+	_bar.max_value = maxi(1, _list.size())
+	_bar.value = 0
 	_build_punch_card()
 	_apply_view_options(0)
 	if _map:
@@ -171,6 +173,7 @@ func _go(k: int) -> void:
 	var cur := _cur()
 	_progress.text = "Memory %d of %d" % [k + 1, _list.size()] if not _retest else "Retest %d of %d" % [k + 1, _list.size()]
 	_room_title.text = cur.room.name
+	_bar.create_tween().tween_property(_bar, "value", float(k + (1 if mode == "run" else 0)), UI.BASE)
 	var global_index: int = cur.num - 1
 	_apply_view_options(global_index + 1)
 	if _map:
@@ -178,9 +181,9 @@ func _go(k: int) -> void:
 		if room_changed:
 			_map.room = cur.room
 			_map.modulate.a = 0.0
-			_map.create_tween().tween_property(_map, "modulate:a", 1.0, 0.25)
+			_map.create_tween().tween_property(_map, "modulate:a", 1.0, UI.BASE)
 		var tw := _map.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		tw.tween_property(_map, "zoom", 1.35, 0.45)
+		tw.tween_property(_map, "zoom", 1.3, 0.4)
 		tw.parallel().tween_property(_map, "focus", Vector2(cur.item.x, cur.item.y), 0.55)
 		if forward and not _retest:
 			# the signature move: the leg draws itself toward the control
@@ -200,6 +203,7 @@ func _grade(ok: bool) -> void:
 	_states[_cur().item.id] = "ok" if ok else "miss"
 	_apply_view_options(_cur().num)
 	_build_punch_card()
+	_bar.create_tween().tween_property(_bar, "value", float(_k + 1), UI.BASE)
 	_go(_k + 1)
 
 
@@ -209,7 +213,7 @@ func _clear_card() -> void:
 	for c in _card.get_children():
 		_card.remove_child(c)
 		c.queue_free()
-	UI.pop_in(_card, 0.0, 0.985)  # each step lands like a fresh sticker
+	UI.fade_in(_card)
 
 
 func _intro_card() -> void:
@@ -218,7 +222,8 @@ func _intro_card() -> void:
 	_card.add_child(UI.label("Ready to recall?", "H2"))
 	_card.add_child(UI.label("Walk your path and try to recall what waits at every stop before you look. Be honest: it is only for you.", "Body", true))
 	var hide := CheckBox.new()
-	hide.text = "Hide the pictures too (harder: recall from the place alone)"
+	hide.text = "Hide the pictures too (harder)"
+	hide.tooltip_text = "Recall each memory from the place alone"
 	hide.button_pressed = _hide
 	hide.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hide.toggled.connect(func(v): _hide = v)
@@ -235,7 +240,7 @@ func _control_card() -> void:
 	_clear_card()
 	var cur := _cur()
 	var it: Dictionary = cur.item
-	var head := UI.hbox(16)
+	var head := UI.hbox(UI.S4)
 	var big := _Big.new()
 	big.item = it
 	big.num = cur.num
@@ -246,12 +251,12 @@ func _control_card() -> void:
 	where.size_flags_horizontal = SIZE_EXPAND_FILL
 	where.size_flags_vertical = SIZE_SHRINK_CENTER
 	where.add_child(UI.label(cur.room.name, "H2"))
-	where.add_child(UI.label("Stop %d on the path" % cur.num, "Muted"))
+	where.add_child(UI.label("Stop %d of %d on the path" % [cur.num, Store.count_items(palace)], "Muted"))
 	head.add_child(where)
 	_card.add_child(head)
 
 	if _revealed:
-		var t := UI.label(it.title if it.title != "" else "(nothing written here yet)", "Display", true)
+		var t := UI.label(it.title if it.title != "" else "Untitled memory", "Display", true)
 		_card.add_child(t)
 		if it.story != "":
 			_card.add_child(UI.label(it.story, "Body", true))
@@ -259,7 +264,7 @@ func _control_card() -> void:
 		_card.add_child(UI.label("What is waiting here?", "Display", true))
 		_card.add_child(UI.label("Picture the spot, then say it out loud or in your head.", "Muted", true))
 	_card.add_child(UI.spacer())
-	var row := UI.hbox(10)
+	var row := UI.hbox(UI.S2)
 	_card.add_child(row)
 	if mode == "run":
 		var back := UI.button("Back", "chevron-left", "Button", "Left arrow")
@@ -273,25 +278,25 @@ func _control_card() -> void:
 		next.pressed.connect(func(): _go(_k + 1))
 		row.add_child(next)
 		UI.focus_later(next)
-		_card.add_child(UI.label("← →  or Space to move along  ·  Esc to stop", "Muted"))
+		_card.add_child(_keys("← →  or Space to move along   ·   Esc to stop"))
 	elif not _revealed:
-		var show := UI.button("Show the answer", "eye", "PrimaryButton", "Space")
+		var show := UI.button("Show the answer", "", "PrimaryButton", "Space")
 		show.size_flags_horizontal = SIZE_EXPAND_FILL
 		show.pressed.connect(_reveal)
 		row.add_child(show)
 		UI.focus_later(show)
-		_card.add_child(UI.label("Space to show the answer", "Muted"))
+		_card.add_child(_keys("Space to show the answer   ·   Esc to stop"))
 	else:
-		var miss := UI.button("Missed it", "x", "Button", "Key 1")
+		var miss := UI.button("Missed it", "", "Button", "Key 1")
 		miss.size_flags_horizontal = SIZE_EXPAND_FILL
 		miss.pressed.connect(func(): _grade(false))
-		var ok := UI.button("Got it", "check", "PrimaryButton", "Key 2")
+		var ok := UI.button("Got it", "", "PrimaryButton", "Key 2")
 		ok.size_flags_horizontal = SIZE_EXPAND_FILL
 		ok.pressed.connect(func(): _grade(true))
 		row.add_child(miss)
 		row.add_child(ok)
 		UI.focus_later(ok)
-		_card.add_child(UI.label("1 = missed it  ·  2 = got it", "Muted"))
+		_card.add_child(_keys("1 = missed it   ·   2 = got it"))
 
 
 func _finish() -> void:
@@ -318,7 +323,7 @@ func _finish() -> void:
 	for e in _list:
 		e.item.recall = _states.get(e.item.id, "")
 	Store.mark_dirty(palace)
-	_card.add_child(UI.label("%d of %d punched" % [got, total], "Display"))
+	_card.add_child(UI.label("%d of %d remembered" % [got, total], "Display"))
 	var missed := _list.filter(func(e): return _states.get(e.item.id) == "miss")
 	if missed.is_empty():
 		_card.add_child(UI.label("A clean run: every memory remembered. Test again in a few days to keep it fresh.", "Body", true))
@@ -326,10 +331,7 @@ func _finish() -> void:
 		_card.add_child(UI.label("Walk these again and make their pictures stranger or bigger:", "Body", true))
 		for e in missed.slice(0, 6):
 			var r := UI.hbox(10)
-			var n := UI.label(str(e.num), "Numeral")
-			n.add_theme_font_size_override(&"font_size", 24)
-			n.custom_minimum_size.x = 32
-			r.add_child(n)
+			r.add_child(UI.number_tag(e.num))
 			var t := UI.label("%s  %s" % [e.item.icon, e.item.title if e.item.title != "" else "(untitled)"], "H3")
 			t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 			t.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -342,6 +344,12 @@ func _finish() -> void:
 	btns.append(["Done", "check", "FlatButton", _close])
 	_card.add_child(UI.spacer())
 	_card.add_child(_buttons(btns))
+
+
+func _keys(text: String) -> Label:
+	var l := UI.label(text, "Muted")
+	l.add_theme_font_size_override(&"font_size", 12)
+	return l
 
 
 func _buttons(list: Array) -> Control:
@@ -364,14 +372,14 @@ func _build_punch_card() -> void:
 	for e in _list:
 		var s: String = _states.get(e.item.id, "")
 		var box := PanelContainer.new()
-		box.custom_minimum_size = Vector2(30, 30)
-		box.tooltip_text = "Memory %d" % e.num
-		var st := UI.box(UI.PAPER if s == "" else (UI.GREEN if s == "ok" else UI.PINK_TINT), UI.INK if s != "miss" else UI.RED, UI.LINE, 8, Vector4.ZERO)
+		box.custom_minimum_size = Vector2(24, 24)
+		box.tooltip_text = "Memory %d%s" % [e.num, "" if s == "" else (": got it" if s == "ok" else ": missed")]
+		var st := UI.box(UI.SURFACE if s == "" else (UI.SUCCESS if s == "ok" else UI.DANGER_TINT), UI.BORDER_STRONG if s == "" else (UI.SUCCESS if s == "ok" else UI.DANGER), UI.LINE, 5, Vector4.ZERO)
 		box.add_theme_stylebox_override(&"panel", st)
 		var l := UI.label(str(e.num) if s == "" else ("✓" if s == "ok" else "✗"), "Caps")
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l.add_theme_color_override(&"font_color", UI.MUTED if s == "" else (UI.PAPER if s == "ok" else UI.RED))
+		l.add_theme_color_override(&"font_color", UI.SUBTLE if s == "" else (UI.SURFACE if s == "ok" else UI.DANGER))
 		box.add_child(l)
 		_punch.add_child(box)
 

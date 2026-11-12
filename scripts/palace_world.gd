@@ -389,7 +389,7 @@ func _build_course() -> void:
 	if all.is_empty():
 		return
 	var limit: int = tour.get("reveal", all.size())
-	var purple := _mat(UI.PINK, true)
+	var purple := _mat(UI.ACCENT, true)
 	var start := Vector3(0, 0.02, D / 2 - 0.9)
 	var tri := MeshInstance3D.new()
 	var tm := CylinderMesh.new()
@@ -459,7 +459,7 @@ func _build_controls() -> void:
 			_flag(n, p)
 			_contact(Vector3(p.x, 0, p.z), 0.3)
 		var sel: bool = it.id == selected_id
-		_sprite(n, _disc_tex(UI.BUTTER if sel else Color(1, 1, 1, 0.75)), 0.95, 0)
+		_sprite(n, _disc_tex(Color(0.80, 0.82, 1.0, 1.0) if sel else Color(1, 1, 1, 0.9)), 0.95, 0)
 		var hide: bool = tour.get("hide_pictures", false) and it.id != tour.get("revealed", "")
 		if not hide:
 			var tex: Texture2D = Store.texture(it.image)
@@ -483,11 +483,11 @@ func _build_controls() -> void:
 		_sprite(n, _ring_tex(k == all.size() - 1), 1.0, 2)
 		var num := Label3D.new()
 		num.text = str(k + 1)
-		num.font = UI.font("black")
+		num.font = UI.font("bold")
 		num.font_size = 110
 		num.outline_size = 26
 		num.outline_modulate = Color.WHITE
-		num.modulate = UI.PINK
+		num.modulate = UI.ACCENT
 		num.pixel_size = 0.0035
 		num.offset = Vector2(150, 120)
 		num.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -563,7 +563,7 @@ static func _ring_tex(finish: bool) -> Texture2D:
 		var a := _aa(absf(r - 0.86) - 0.09, 0.012)
 		if finish:
 			a = maxf(_aa(absf(r - 0.62) - 0.07, 0.012), _aa(absf(r - 0.9) - 0.07, 0.012))
-		return Color(UI.PINK, a))
+		return Color(UI.ACCENT, a))
 
 
 static func _disc_tex(c: Color) -> Texture2D:
@@ -581,9 +581,9 @@ static func _mark_tex(ok: bool) -> Texture2D:
 		if ok:
 			var disc := _aa(p.length() - 0.95, 0.03)
 			var tick := _aa(minf(_seg_dist(p, Vector2(-0.45, 0.02), Vector2(-0.1, 0.38)), _seg_dist(p, Vector2(-0.1, 0.38), Vector2(0.48, -0.32))) - 0.12, 0.03)
-			return Color(UI.GREEN.lerp(Color.WHITE, tick), disc)
+			return Color(UI.SUCCESS.lerp(Color.WHITE, tick), disc)
 		var x := minf(_seg_dist(p, Vector2(-0.8, -0.8), Vector2(0.8, 0.8)), _seg_dist(p, Vector2(-0.8, 0.8), Vector2(0.8, -0.8)))
-		return Color(UI.RED, _aa(x - 0.07, 0.02)))
+		return Color(UI.DANGER, _aa(x - 0.07, 0.02)))
 
 
 ## BoxMesh lays its six faces out as a 3x2 atlas: split every cell on the diagonal like a control kite.
@@ -591,7 +591,7 @@ static func _kite_tex() -> Texture2D:
 	return _paint("kite", 96, func(p: Vector2) -> Color:
 		var q := (p + Vector2.ONE) * 0.5
 		var cell := Vector2(fposmod(q.x * 3.0, 1.0), fposmod(q.y * 2.0, 1.0))
-		return Color.WHITE if cell.x + cell.y < 1.0 else UI.PINK)
+		return Color.WHITE if cell.x + cell.y < 1.0 else UI.ACCENT)
 
 
 # ---------- camera ----------

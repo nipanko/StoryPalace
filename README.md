@@ -7,7 +7,7 @@ Built with 💖 by **Storybook Interactive Private Limited**.
 ## What it does
 
 - **Palaces and rooms.** Ready-made illustrated rooms (living room, kitchen, bedroom, hallway, classroom, library, castle hall, garden, beach), or a photo of a real place you know.
-- **Memories on a path.** Click anywhere on a room to stick a memory there. Each one is a numbered sticker on a pink path, from the start triangle to the finish ring. Drag to move, reorder with Earlier and Later.
+- **Memories on a path.** Click anywhere on a room to place a memory. Each one is a numbered marker on a path that runs from the start triangle to the finish ring. Drag to move, reorder with Earlier and Later.
 - **Pictures and stories.** Search about 1,800 emoji, or use your own image. Typing what to remember suggests pictures for you.
 - **2D map or 3D walk.** Switch any time. In 3D, drag to look around and use W A S D or the arrow keys to walk through the rooms.
 - **Run the course.** A guided walk, control by control, with the path drawing itself as you go.
@@ -61,6 +61,8 @@ To run only the checks, with no window and no screenshots:
 godot --headless --path . -- --shots=none
 ```
 
+The interface follows one design system (colours, type scale, spacing, components), described in `DESIGN.md` and defined in `scripts/ui.gd`.
+
 ## Project layout
 
 ```
@@ -77,14 +79,14 @@ scripts/
   pickers.gd        picture picker and room picker
   emoji.gd, ui.gd, thumb.gd, sample.gd, shots.gd
 data/               emoji list (Unicode), interface icons
-fonts/              Young Serif and Nunito
+fonts/              Inter
 licenses/           third-party licences
 ```
 
 ## Credits
 
 - Engine: Godot Engine, MIT licence (`licenses/godot-MIT.txt`, `licenses/godot-COPYRIGHT.txt`)
-- Typefaces: Young Serif and Nunito, SIL Open Font License (`licenses/youngserif-OFL.txt`, `licenses/nunito-OFL.txt`)
+- Typeface: Inter by Rasmus Andersson, SIL Open Font License (`licenses/inter-OFL.txt`)
 - Interface icons: Lucide, ISC licence (`licenses/lucide-ISC.txt`)
 - Emoji names: Unicode emoji data. Emoji pictures are drawn by your system's emoji font.
 
