@@ -155,6 +155,7 @@ func _toolbar() -> Control:
 	_seg2.pressed.connect(func(): _set_view("2d"))
 	_seg3.pressed.connect(func(): _set_view("3d"))
 	row.add_child(track)
+	row.add_child(UI.theme_button())
 	row.add_child(UI.vrule())
 	_test = UI.button("Punch test", "check", "Button", "Test what you remember  (T)")
 	_test.pressed.connect(func(): run_requested.emit("test"))

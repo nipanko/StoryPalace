@@ -3,22 +3,58 @@ class_name UI
 ## the app Theme, panels, and widget factories. Screens use these and nothing ad hoc.
 
 # ---------- colour tokens ----------
-const TEXT := Color("#1A1D23")
-const MUTED := Color("#5F6672")          # secondary text, 5.9:1 on SURFACE
-const SUBTLE := Color("#868D99")         # captions, disabled
-const BG := Color("#F4F5F7")             # app background
-const SURFACE := Color("#FFFFFF")        # panels, cards, inputs
-const SUNKEN := Color("#ECEEF1")         # canvas wells, tracks
-const HOVER := Color("#F0F2F5")
-const BORDER := Color("#DFE2E7")
-const BORDER_STRONG := Color("#C7CCD4")
-const ACCENT := Color("#4F46E5")         # path, numbers, primary action, focus, selection
-const ACCENT_HOVER := Color("#4338CA")
-const ACCENT_TINT := Color("#EEF0FE")
-const SUCCESS := Color("#1F7A4D")
-const SUCCESS_TINT := Color("#E6F4EC")
-const DANGER := Color("#C8322B")
-const DANGER_TINT := Color("#FCEBEA")
+static var TEXT := Color("#1A1D23")
+static var MUTED := Color("#5F6672")          # secondary text, 5.9:1 on SURFACE
+static var SUBTLE := Color("#868D99")         # captions, disabled
+static var BG := Color("#F4F5F7")             # app background
+static var SURFACE := Color("#FFFFFF")        # panels, cards, inputs
+static var SUNKEN := Color("#ECEEF1")         # canvas wells, tracks
+static var HOVER := Color("#F0F2F5")
+static var BORDER := Color("#DFE2E7")
+static var BORDER_STRONG := Color("#C7CCD4")
+static var ACCENT := Color("#4F46E5")         # path, numbers, primary action, focus, selection
+static var ACCENT_HOVER := Color("#4338CA")
+static var ACCENT_TINT := Color("#EEF0FE")
+static var SUCCESS := Color("#1F7A4D")
+static var SUCCESS_TINT := Color("#E6F4EC")
+static var DANGER := Color("#C8322B")
+static var DANGER_TINT := Color("#FCEBEA")
+
+static var dark := false
+static var on_theme_changed := Callable()
+
+const DARK := {"TEXT": "#E8EAED", "MUTED": "#A3A9B4", "SUBTLE": "#7B828E", "BG": "#111318", "SURFACE": "#1A1D24", "SUNKEN": "#0D0F13",
+	"HOVER": "#242832", "BORDER": "#2B303A", "BORDER_STRONG": "#3A404C", "ACCENT": "#6366F1", "ACCENT_HOVER": "#5458E0", "ACCENT_TINT": "#262A52",
+	"SUCCESS": "#2F9E69", "SUCCESS_TINT": "#16301F", "DANGER": "#E5564D", "DANGER_TINT": "#3A1A18"}
+const LIGHT := {"TEXT": "#1A1D23", "MUTED": "#5F6672", "SUBTLE": "#868D99", "BG": "#F4F5F7", "SURFACE": "#FFFFFF", "SUNKEN": "#ECEEF1",
+	"HOVER": "#F0F2F5", "BORDER": "#DFE2E7", "BORDER_STRONG": "#C7CCD4", "ACCENT": "#4F46E5", "ACCENT_HOVER": "#4338CA", "ACCENT_TINT": "#EEF0FE",
+	"SUCCESS": "#1F7A4D", "SUCCESS_TINT": "#E6F4EC", "DANGER": "#C8322B", "DANGER_TINT": "#FCEBEA"}
+
+
+## Switches every colour token between the light and dark palettes.
+static func set_dark(d: bool) -> void:
+	dark = d
+	var p: Dictionary = DARK if d else LIGHT
+	TEXT = Color(p.TEXT); MUTED = Color(p.MUTED); SUBTLE = Color(p.SUBTLE); BG = Color(p.BG)
+	SURFACE = Color(p.SURFACE); SUNKEN = Color(p.SUNKEN); HOVER = Color(p.HOVER)
+	BORDER = Color(p.BORDER); BORDER_STRONG = Color(p.BORDER_STRONG)
+	ACCENT = Color(p.ACCENT); ACCENT_HOVER = Color(p.ACCENT_HOVER); ACCENT_TINT = Color(p.ACCENT_TINT)
+	SUCCESS = Color(p.SUCCESS); SUCCESS_TINT = Color(p.SUCCESS_TINT); DANGER = Color(p.DANGER); DANGER_TINT = Color(p.DANGER_TINT)
+
+
+## Flips the theme, remembers the choice and asks the app to rebuild the screen.
+static func toggle_dark() -> void:
+	Store.settings.dark = not dark
+	Store.save_settings()
+	if on_theme_changed.is_valid():
+		on_theme_changed.call()
+
+
+static func theme_button() -> Button:
+	var b := icon_button("sun" if dark else "moon", "Switch to light mode" if dark else "Switch to dark mode")
+	b.pressed.connect(toggle_dark)
+	return b
+
 
 # ---------- metrics ----------
 const S1 := 4
@@ -104,7 +140,7 @@ static func box(bg: Color, border := Color.TRANSPARENT, bw := 0, radius := R_CON
 
 ## Elevation is reserved for things that float: popups, menus, toasts.
 static func elevated(s: StyleBoxFlat) -> StyleBoxFlat:
-	s.shadow_color = Color(0.06, 0.08, 0.14, 0.14)
+	s.shadow_color = Color(0, 0, 0, 0.45) if dark else Color(0.06, 0.08, 0.14, 0.14)
 	s.shadow_size = 18
 	s.shadow_offset = Vector2(0, 6)
 	return s
@@ -117,7 +153,7 @@ static func build_theme() -> Theme:
 
 	# Buttons
 	_button(t, "Button", SURFACE, HOVER, SUNKEN, BORDER_STRONG, TEXT)
-	_button(t, "PrimaryButton", ACCENT, ACCENT_HOVER, ACCENT_HOVER, ACCENT, SURFACE)
+	_button(t, "PrimaryButton", ACCENT, ACCENT_HOVER, ACCENT_HOVER, ACCENT, Color.WHITE)
 	_button(t, "FlatButton", Color.TRANSPARENT, HOVER, SUNKEN, Color.TRANSPARENT, TEXT)
 	_button(t, "DangerButton", Color.TRANSPARENT, DANGER_TINT, DANGER_TINT, Color.TRANSPARENT, DANGER)
 	for ty in ["PrimaryButton", "FlatButton", "DangerButton"]:
@@ -224,7 +260,7 @@ static func build_theme() -> Theme:
 	t.set_font_size(&"title_font_size", "Window", 13)
 	t.set_color(&"title_color", "Window", TEXT)
 	t.set_constant(&"title_height", "Window", 34)
-	var x := '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M6 6l8 8M14 6l-8 8" stroke="#5F6672" stroke-width="1.6" stroke-linecap="round"/></svg>'
+	var x := '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><path d="M6 6l8 8M14 6l-8 8" stroke="#%s" stroke-width="1.6" stroke-linecap="round"/></svg>' % MUTED.to_html(false)
 	t.set_icon(&"close", "Window", _svg_tex(x))
 	t.set_icon(&"close_pressed", "Window", _svg_tex(x))
 	t.set_stylebox(&"panel", "AcceptDialog", box(SURFACE, Color.TRANSPARENT, 0, 0, Vector4(S4, S3, S4, S4)))
@@ -242,8 +278,8 @@ static func build_theme() -> Theme:
 	for st in ["normal", "pressed", "hover", "hover_pressed"]:
 		t.set_stylebox(st, "CheckBox", box(HOVER if st.begins_with("hover") else Color.TRANSPARENT, Color.TRANSPARENT, 0, R_CONTROL, Vector4(6, 4, 6, 4)))
 	t.set_stylebox(&"focus", "CheckBox", _focus())
-	var off := '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><rect x="1.5" y="1.5" width="15" height="15" rx="4" fill="#FFFFFF" stroke="#C7CCD4" stroke-width="1"/></svg>'
-	var on := '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><rect x="1" y="1" width="16" height="16" rx="4" fill="#4F46E5"/><path d="M5 9.3l2.7 2.7 5.3-6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+	var off := '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><rect x="1.5" y="1.5" width="15" height="15" rx="4" fill="#%s" stroke="#%s" stroke-width="1"/></svg>' % [SURFACE.to_html(false), BORDER_STRONG.to_html(false)]
+	var on := '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"><rect x="1" y="1" width="16" height="16" rx="4" fill="#%s"/><path d="M5 9.3l2.7 2.7 5.3-6" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' % ACCENT.to_html(false)
 	t.set_icon(&"unchecked", "CheckBox", _svg_tex(off))
 	t.set_icon(&"checked", "CheckBox", _svg_tex(on))
 	t.set_constant(&"h_separation", "CheckBox", 8)
@@ -353,7 +389,7 @@ static func number_tag(num: int) -> Label:
 	var l := label(str(num))
 	l.add_theme_font_override(&"font", font("semibold"))
 	l.add_theme_font_size_override(&"font_size", 12)
-	l.add_theme_color_override(&"font_color", SURFACE)
+	l.add_theme_color_override(&"font_color", Color.WHITE)
 	l.add_theme_stylebox_override(&"normal", box(ACCENT, Color.TRANSPARENT, 0, 11, Vector4(6, 1, 6, 1)))
 	l.custom_minimum_size = Vector2(22, 22)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -517,7 +553,7 @@ static func toast(owner: Control, text: String, action := [], seconds := 2.6) ->
 	if action:
 		var b := button(action[0], "", "FlatButton")
 		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-			b.add_theme_color_override(c, Color("#C7CBFF"))
+			b.add_theme_color_override(c, ACCENT if dark else Color("#C7CBFF"))
 		b.add_theme_stylebox_override(&"hover", box(Color(1, 1, 1, 0.12), Color.TRANSPARENT, 0))
 		b.pressed.connect(func(): action[1].call(); p.queue_free())
 		row.add_child(b)

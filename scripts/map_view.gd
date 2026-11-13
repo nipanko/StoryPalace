@@ -95,7 +95,7 @@ func _draw() -> void:
 	if editable and _ghost.x >= 0 and not _dragging:
 		var c := rect.position + _ghost * rect.size
 		var r := radius()
-		draw_circle(c, r, Color(UI.SURFACE, 0.8), true, -1, true)
+		draw_circle(c, r, Color(1, 1, 1, 0.8), true, -1, true)
 		draw_arc(c, r, 0, TAU, 48, Color(UI.ACCENT, 0.85), Course.ring_width(r), true)
 		draw_line(c - Vector2(r * 0.32, 0), c + Vector2(r * 0.32, 0), UI.ACCENT, 2, true)
 		draw_line(c - Vector2(0, r * 0.32), c + Vector2(0, r * 0.32), UI.ACCENT, 2, true)

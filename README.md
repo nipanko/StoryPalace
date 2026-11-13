@@ -12,6 +12,7 @@ Built with 💖 by **Storybook Interactive Private Limited**.
 - **2D map or 3D walk.** Switch any time. In 3D, drag to look around and use W A S D or the arrow keys to walk through the rooms.
 - **Run the course.** A guided walk, control by control, with the path drawing itself as you go.
 - **Punch test.** Recall each control before revealing it, then mark it as got it or missed it. You get a score, the list of missed controls, and a one-click retest of only those. Results are saved with the palace.
+- **Light and dark mode.** Follows your system setting, or switch with the sun/moon button.
 - **Yours, offline.** No account, no internet. Export a palace to a `.palace` file to back it up or share it, and import files from others.
 
 Keyboard: `R` runs the course, `T` starts the test, `Delete` removes the selected control, `Ctrl+Z` undoes. While running: `←` `→` or `Space` move along, `Space` shows the answer, `1` means missed, `2` means got it, and `Esc` leaves.

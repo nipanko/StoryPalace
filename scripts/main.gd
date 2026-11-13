@@ -6,12 +6,8 @@ var _screen: Control
 
 func _ready() -> void:
 	_fit_window()
-	get_tree().root.theme = UI.build_theme()
-	var bg := ColorRect.new()
-	bg.color = UI.BG
-	bg.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	add_child(bg)
-	show_home()
+	UI.on_theme_changed = _apply_theme
+	_apply_theme()
 	if Array(OS.get_cmdline_user_args()).any(func(a): return a.begins_with("--shots=")):
 		add_child(load("res://scripts/shots.gd").new())
 
@@ -30,6 +26,19 @@ func _fit_window() -> void:
 	w.title = "StoryPalace"
 	if "--windowed" not in OS.get_cmdline_user_args():
 		w.mode = Window.MODE_MAXIMIZED
+
+
+## Light or dark: the saved choice, or the system setting when none was made.
+func _apply_theme() -> void:
+	var d = Store.settings.get("dark")
+	UI.set_dark(d if d is bool else DisplayServer.is_dark_mode())
+	PalaceWorld._tex.clear()
+	get_tree().root.theme = UI.build_theme()
+	RenderingServer.set_default_clear_color(UI.BG)
+	if _screen is PalaceScreen:
+		open_palace(_screen.palace)
+	else:
+		show_home()
 
 
 func _swap(s: Control) -> void:

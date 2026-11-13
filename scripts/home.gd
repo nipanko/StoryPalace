@@ -46,6 +46,7 @@ func _ready() -> void:
 	search.size_flags_vertical = SIZE_SHRINK_CENTER
 	search.text_changed.connect(func(t): _query = t.strip_edges(); _fill(false))
 	tb.row.add_child(search)
+	tb.row.add_child(UI.theme_button())
 	tb.row.add_child(UI.vrule())
 	var imp := UI.button("Import", "upload", "Button", "Open a .palace file someone shared with you")
 	imp.pressed.connect(_import)

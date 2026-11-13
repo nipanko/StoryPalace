@@ -20,11 +20,11 @@ static func draw_control(ci: CanvasItem, c: Vector2, r: float, num: int, item: D
 		ci.draw_circle(c, r + w * 2.4, Color(UI.ACCENT, 0.22), true, -1, true)
 	elif opts.get("hover", false):
 		ci.draw_circle(c, r + w * 1.8, Color(UI.ACCENT, 0.12), true, -1, true)
-	ci.draw_circle(c, r, UI.SURFACE, true, -1, true)
+	ci.draw_circle(c, r, Color.WHITE, true, -1, true)
 	if not opts.get("hide_picture", false):
 		draw_picture(ci, c, r * 1.2, item)
 	else:
-		draw_text_center(ci, c, "?", r * 1.0, UI.SUBTLE)
+		draw_text_center(ci, c, "?", r * 1.0, Color("#868D99"))
 	ci.draw_arc(c, r - w * 0.5, 0, TAU, 64, UI.ACCENT, w, true)
 	if opts.get("finish", false):
 		ci.draw_arc(c, r + w * 1.5, 0, TAU, 64, UI.ACCENT, w * 0.7, true)
@@ -32,7 +32,7 @@ static func draw_control(ci: CanvasItem, c: Vector2, r: float, num: int, item: D
 		"ok":
 			var o := c + Vector2(r * 0.74, r * 0.74)
 			var k := r * 0.4
-			ci.draw_circle(o, k + 1.5, UI.SURFACE, true, -1, true)
+			ci.draw_circle(o, k + 1.5, Color.WHITE, true, -1, true)
 			ci.draw_circle(o, k, UI.SUCCESS, true, -1, true)
 			ci.draw_polyline(PackedVector2Array([o + Vector2(-k * 0.5, 0), o + Vector2(-k * 0.1, k * 0.4), o + Vector2(k * 0.5, -k * 0.35)]), Color.WHITE, maxf(1.5, k * 0.22), true)
 		"miss":
@@ -68,7 +68,7 @@ static func draw_number(ci: CanvasItem, pos: Vector2, text: String, size: float)
 	var ts := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 	var h := fs * 1.45
 	var rect := Rect2(pos - Vector2(h * 0.3, h * 0.5), Vector2(maxf(h, ts.x + h * 0.6), h))
-	ci.draw_style_box(UI.box(UI.SURFACE, Color.TRANSPARENT, 0, int(h * 0.5) + 2, Vector4.ZERO), rect.grow(1.5))
+	ci.draw_style_box(UI.box(Color.WHITE, Color.TRANSPARENT, 0, int(h * 0.5) + 2, Vector4.ZERO), rect.grow(1.5))
 	ci.draw_style_box(UI.box(UI.ACCENT, Color.TRANSPARENT, 0, int(h * 0.5), Vector4.ZERO), rect)
 	ci.draw_string(f, Vector2(rect.get_center().x - ts.x * 0.5, rect.get_center().y - ts.y * 0.5 + f.get_ascent(fs)), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 
@@ -82,7 +82,7 @@ static func draw_start(ci: CanvasItem, c: Vector2, r: float, toward: Vector2) ->
 	var halo := PackedVector2Array()
 	for i in 3:
 		halo.append(c + dir.rotated(TAU * i / 3.0) * (r + 3.0))
-	ci.draw_colored_polygon(halo, UI.SURFACE)
+	ci.draw_colored_polygon(halo, Color.WHITE)
 	ci.draw_colored_polygon(pts, UI.ACCENT)
 
 

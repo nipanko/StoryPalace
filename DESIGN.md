@@ -21,6 +21,10 @@ StoryPalace looks and behaves like professional desktop software: neutral surfac
 
 State never relies on colour alone: a remembered memory gets a check badge and the words "Got it", a missed one is crossed out and labelled "Missed".
 
+## Dark mode
+
+Every colour token has a dark value (`UI.DARK` in `scripts/ui.gd`): background `#111318`, surfaces `#1A1D24`, text `#E8EAED`, accent `#6366F1`. The app follows the system setting until the user picks one with the sun/moon button in the toolbar; the choice is saved. Map markers stay white in both themes so pictures read the same.
+
 ## Type
 
 One family, Inter, at four weights (400, 500, 600, 700). Emoji fall back to the system colour emoji font.
