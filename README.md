@@ -23,11 +23,13 @@ Keyboard: `R` runs the course, `T` starts the test, `Delete` removes the selecte
 |---|---|
 | **Windows 10/11** | Run `StoryPalace-Setup.exe` and follow the setup wizard. It adds StoryPalace to the Start menu (and optionally the desktop) and can be removed from *Settings → Apps*. No admin rights needed. |
 | **macOS 10.13+** (Apple Silicon and Intel) | Unzip `StoryPalace.zip` and drag **StoryPalace.app** into Applications. The first time, right-click the app and choose **Open**, then **Open** again. The app is not notarised by Apple yet. |
+| **Linux** (x86_64) | Download `StoryPalace-Linux-x86_64.tar.gz`, extract it, and run `./StoryPalace.x86_64`. Needs a desktop with OpenGL 3.3 and an emoji font (e.g. Noto Color Emoji). |
 
 Your palaces are saved automatically to:
 
 - Windows: `%APPDATA%\StoryPalace`
 - macOS: `~/Library/Application Support/StoryPalace`
+- Linux: `~/.local/share/StoryPalace`
 
 ## Build from source
 
@@ -42,6 +44,10 @@ godot --headless --path . --export-release "Windows Desktop" build/windows/Story
 
 ```bash
 godot --headless --path . --export-release "macOS" build/macos/StoryPalace.zip
+```
+
+```bash
+godot --headless --path . --export-release "Linux" build/linux/StoryPalace.x86_64
 ```
 
 To build the Windows installer, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run `ISCC installer/storypalace.iss` after exporting the exe; it writes `build/installer/StoryPalace-Setup-<version>.exe`.
